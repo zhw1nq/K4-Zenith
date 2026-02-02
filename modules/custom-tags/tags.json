@@ -1,0 +1,55 @@
+// This configuration file defines tag settings for players.
+// You can use the following keys to target specific players or groups:
+// - "all": Applies to all players
+// - "#GroupName": Applies to players in a specific group (e.g., "#Owner", "#Admin")
+// - "@Permission": Applies to players with a specific permission (e.g., "@css/admin")
+// - "SteamID": Applies to a specific player by their Steam ID
+{
+    "all": {
+        "AvailableConfigs": [
+            "ranking"
+        ]
+    },
+    "@css/tgs-vip": {
+        "DefaultPreset": "vip",
+        "AvailableConfigs": [
+            "vip"
+        ]
+    },
+    "@css/tgs-svip": {
+        "DefaultPreset": "svip",
+        "AvailableConfigs": [
+            "svip"
+        ]
+    },
+    "@css/tgs-staff": {
+        "DefaultPreset": "staff",
+        "AvailableConfigs": [
+            "staff",
+            "developer",
+            "owner"
+        ]
+    },
+    "@css/tgs-dev": {
+        "DefaultPreset": "developer",
+        "AvailableConfigs": [
+            "ranking",
+            "vip",
+            "svip",
+            "staff",
+            "developer",
+            "owner"
+        ]
+    },
+    "@css/tgs-owner": {
+        "DefaultPreset": "owner",
+        "AvailableConfigs": [
+            "ranking",
+            "vip",
+            "svip",
+            "staff",
+            "developer",
+            "owner"
+        ]
+    }
+}

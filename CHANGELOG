@@ -1,3 +1,19 @@
+# 2026.02.03 - 1.0.42
+
+- feat: Added Skillgroup Ranking System to CustomTags module
+- feat: Top 100 players display custom skillgroup icons on scoreboard (skillgroup202601N.vsvg)
+- feat: Priority logic for skillgroup display: Ranking > Permission fallback
+- feat: Auto-precache skillgroup icons 1-100 + custom IDs from predefined_tags.json
+- feat: Added async Top 100 cache with 60-second refresh interval
+- upgrade: Changed TagConfig.Skillgroup (int) to SkillgroupID (string) for custom workshop IDs
+- upgrade: Changed PredefinedTagConfig.Skillgroup (int) to SkillgroupID (string)
+- upgrade: Added SkillgroupID field to predefined_tags.json presets (vip, svip, staff, developer, owner)
+- upgrade: Added DefaultPreset field to tags.json for automatic preset assignment
+- remove: Scoreboard rank display from Ranks module (UseScoreboardRanks, SetCompetitiveRank, UpdateScoreboards)
+- remove: ClanTag functionality from CustomTags module
+- remove: Inline ChatColor, NameColor, NameTag from tags.json (now use DefaultPreset → predefined_tags.json)
+- deps: Added Dapper and MySqlConnector to CustomTags module for database queries
+
 # 2025.05.12 - 1.0.41
 
 - feat: Added the player's current points to the round summaries (#22)

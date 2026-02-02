@@ -1,0 +1,43 @@
+// This configuration file defines predefined tag configurations that can be applied to players.
+// These configurations can be referenced in the 'AvailableConfigs' list in the main tags.json file.
+{
+    "ranking": {
+        "Name": "Ranking",
+        "SkillgroupID": ""
+    },
+    "vip": {
+        "Name": "VIP",
+        "ChatColor": "yellow",
+        "NameColor": "yellow",
+        "NameTag": "{yellow}VIP » ",
+        "SkillgroupID": "20260195"
+    },
+    "svip": {
+        "Name": "SVIP",
+        "ChatColor": "gold",
+        "NameColor": "gold",
+        "NameTag": "{gold}SVIP » ",
+        "SkillgroupID": "20260196"
+    },
+    "staff": {
+        "Name": "STAFF",
+        "ChatColor": "blue",
+        "NameColor": "blue",
+        "NameTag": "{blue}STAFF » ",
+        "SkillgroupID": "202601997"
+    },
+    "developer": {
+        "Name": "DEVELOPER",
+        "ChatColor": "blue",
+        "NameColor": "blue",
+        "NameTag": "{blue}DEVELOPER » ",
+        "SkillgroupID": "202601998"
+    },
+    "owner": {
+        "Name": "OWNER",
+        "ChatColor": "lightred",
+        "NameColor": "lightred",
+        "NameTag": "{lightred}OWNER » ",
+        "SkillgroupID": "202601999"
+    }
+}

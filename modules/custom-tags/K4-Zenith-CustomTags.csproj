@@ -17,6 +17,8 @@
       <ExcludeAssets>runtime</ExcludeAssets>
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Dapper" Version="*" />
+    <PackageReference Include="MySqlConnector" Version="*" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ZenithAPI">

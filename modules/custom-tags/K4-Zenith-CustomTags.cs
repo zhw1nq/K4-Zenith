@@ -1,9 +1,13 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Core.Capabilities;
+using CounterStrikeSharp.API.Modules.Timers;
+using Dapper;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using ZenithAPI;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Entities;
@@ -36,11 +40,19 @@ public class Plugin : BasePlugin
     private readonly Dictionary<CCSPlayerController, IPlayerServices> _playerCache = [];
     private readonly Dictionary<CCSPlayerController, CounterStrikeSharp.API.Modules.Timers.Timer> _removalTimers = [];
 
+    // Top 100 ranking cache: SteamID -> (Placement, CacheTime)
+    private readonly ConcurrentDictionary<ulong, (int Placement, DateTime CacheTime)> _top100Cache = new();
+    private DateTime _top100CacheTriggered = DateTime.MinValue;
+    private const int TOP100_LIMIT = 100;
+    private const string SKILLGROUP_BASE = "202601";
+    private const string MODULE_FULL_ID = "K4-Zenith-CustomTags";
+
     public KitsuneMenu Menu { get; private set; } = null!;
     public IModuleConfigAccessor _coreAccessor = null!;
 
     private Dictionary<string, TagConfig>? _tagConfigs;
     private Dictionary<string, PredefinedTagConfig>? _predefinedConfigs;
+
 
     public override void OnAllPluginsLoaded(bool hotReload)
     {
@@ -106,7 +118,19 @@ public class Plugin : BasePlugin
                 if (player != null && player.IsValid && !player.IsBot && !player.IsHLTV)
                     OnZenithPlayerLoaded(player);
             }
+
+            // Initial cache on hot reload
+            CacheTop100();
         }
+
+        // Register OnMapStart for precaching skillgroup icons (must be done during map load)
+        RegisterListener<Listeners.OnMapStart>(OnMapStart);
+
+        // Start Top100 cache timer (every 60 seconds)
+        AddTimer(60.0f, CacheTop100, TimerFlags.REPEAT);
+
+        // Register OnTick for scoreboard skillgroup updates
+        RegisterListener<Listeners.OnTick>(UpdateSkillgroupsOnScoreboard);
 
         Logger.LogInformation("Zenith {0} module successfully registered.", MODULE_ID);
     }
@@ -125,12 +149,8 @@ public class Plugin : BasePlugin
             availableConfigs.UnionWith(allConfig.AvailableConfigs);
         }
 
-        bool hasCustomConfig = false;
         if (_tagConfigs.TryGetValue(player.SteamID.ToString(), out var playerConfig))
         {
-            hasCustomConfig = playerConfig.ChatColor != null || playerConfig.ClanTag != null ||
-                              playerConfig.NameColor != null || playerConfig.NameTag != null;
-
             if (playerConfig.AvailableConfigs != null)
             {
                 availableConfigs.UnionWith(playerConfig.AvailableConfigs);
@@ -145,14 +165,7 @@ public class Plugin : BasePlugin
             }
         }
 
-        items.Add(new MenuItem(MenuItemType.Button, [new MenuValue(Localizer.ForPlayer(player, "customtags.menu.none"))]));
-        configKeys.Add("none");
 
-        if (hasCustomConfig)
-        {
-            items.Add(new MenuItem(MenuItemType.Button, [new MenuValue(Localizer.ForPlayer(player, "customtags.menu.default"))]));
-            configKeys.Add("default");
-        }
 
         foreach (var configName in availableConfigs)
         {
@@ -235,7 +248,6 @@ public class Plugin : BasePlugin
 
         MenuManager.OpenChatMenu(player, tagMenu);
     }
-
     private void ApplySelectedConfig(CCSPlayerController player, string selectedConfigKey)
     {
         var zenithPlayer = GetZenithPlayer(player);
@@ -245,19 +257,7 @@ public class Plugin : BasePlugin
             return;
         }
 
-        if (selectedConfigKey == "default")
-        {
-            zenithPlayer.SetStorage("ChoosenTag", "Default");
-            ApplyTagConfig(player);
-            _moduleServices?.PrintForPlayer(player, Localizer.ForPlayer(player, "customtags.applied.default"));
-        }
-        else if (selectedConfigKey == "none")
-        {
-            zenithPlayer.SetStorage("ChoosenTag", "None");
-            ApplyNullConfig(zenithPlayer);
-            _moduleServices?.PrintForPlayer(player, Localizer.ForPlayer(player, "customtags.applied.none"));
-        }
-        else if (_predefinedConfigs?.TryGetValue(selectedConfigKey, out var selectedPredefinedConfig) == true)
+        if (_predefinedConfigs?.TryGetValue(selectedConfigKey, out var selectedPredefinedConfig) == true)
         {
             zenithPlayer.SetStorage("ChoosenTag", selectedConfigKey);
             ApplyConfig(zenithPlayer, selectedPredefinedConfig);
@@ -278,33 +278,32 @@ public class Plugin : BasePlugin
             {
                 ["all"] = new TagConfig
                 {
-                    ClanTag = "Player | ",
-                    NameColor = "white",
-                    NameTag = "{white}[Player] ",
-                    AvailableConfigs = ["player"]
+                    AvailableConfigs = ["ranking"]
                 },
-                ["@zenith/root"] = new TagConfig
+                ["@css/tgs-vip"] = new TagConfig
                 {
-                    ChatColor = "lightred",
-                    ClanTag = "OWNER | ",
-                    NameColor = "lightred",
-                    NameTag = "{lightred}[OWNER] ",
-                    AvailableConfigs = ["owner"]
+                    DefaultPreset = "vip",
+                    AvailableConfigs = ["vip"]
                 },
-                ["@css/admin"] = new TagConfig
+                ["@css/tgs-svip"] = new TagConfig
                 {
-                    ClanTag = "ADMIN | ",
-                    NameColor = "blue",
-                    NameTag = "{blue}[ADMIN] ",
-                    AvailableConfigs = ["admin"]
+                    DefaultPreset = "svip",
+                    AvailableConfigs = ["svip"]
                 },
-                ["76561198345583467"] = new TagConfig
+                ["@css/tgs-staff"] = new TagConfig
                 {
-                    ChatColor = "gold",
-                    ClanTag = "Zenith | ",
-                    NameColor = "gold",
-                    NameTag = "{gold}[Zenith] ",
-                    AvailableConfigs = ["vip", "donator"]
+                    DefaultPreset = "staff",
+                    AvailableConfigs = ["staff", "developer", "owner"]
+                },
+                ["@css/tgs-dev"] = new TagConfig
+                {
+                    DefaultPreset = "developer",
+                    AvailableConfigs = ["ranking", "vip", "svip", "staff", "developer", "owner"]
+                },
+                ["@css/tgs-owner"] = new TagConfig
+                {
+                    DefaultPreset = "owner",
+                    AvailableConfigs = ["ranking", "vip", "svip", "staff", "developer", "owner"]
                 }
             };
 
@@ -329,45 +328,44 @@ public class Plugin : BasePlugin
         {
             var defaultConfig = new Dictionary<string, PredefinedTagConfig>
             {
-                ["player"] = new PredefinedTagConfig
+                ["ranking"] = new PredefinedTagConfig
                 {
-                    Name = "Player",
-                    ChatColor = "white",
-                    ClanTag = "Player | ",
-                    NameColor = "white",
-                    NameTag = "{white}[Player] "
-                },
-                ["owner"] = new PredefinedTagConfig
-                {
-                    Name = "Owner",
-                    ChatColor = "lightred",
-                    ClanTag = "OWNER | ",
-                    NameColor = "lightred",
-                    NameTag = "{lightred}[OWNER] "
-                },
-                ["admin"] = new PredefinedTagConfig
-                {
-                    Name = "Admin",
-                    ChatColor = "blue",
-                    ClanTag = "ADMIN | ",
-                    NameColor = "blue",
-                    NameTag = "{blue}[ADMIN] "
+                    Name = "Ranking"
                 },
                 ["vip"] = new PredefinedTagConfig
                 {
                     Name = "VIP",
-                    ChatColor = "gold",
-                    ClanTag = "VIP | ",
-                    NameColor = "gold",
-                    NameTag = "{gold}[VIP] "
+                    ChatColor = "yellow",
+                    NameColor = "yellow",
+                    NameTag = "{yellow}VIP » "
                 },
-                ["donator"] = new PredefinedTagConfig
+                ["svip"] = new PredefinedTagConfig
                 {
-                    Name = "Donator",
-                    ChatColor = "green",
-                    ClanTag = "DONATOR | ",
-                    NameColor = "green",
-                    NameTag = "{green}[DONATOR] "
+                    Name = "SVIP",
+                    ChatColor = "gold",
+                    NameColor = "gold",
+                    NameTag = "{gold}SVIP » "
+                },
+                ["staff"] = new PredefinedTagConfig
+                {
+                    Name = "STAFF",
+                    ChatColor = "blue",
+                    NameColor = "blue",
+                    NameTag = "{blue}STAFF » "
+                },
+                ["developer"] = new PredefinedTagConfig
+                {
+                    Name = "DEVELOPER",
+                    ChatColor = "blue",
+                    NameColor = "blue",
+                    NameTag = "{blue}DEVELOPER » "
+                },
+                ["owner"] = new PredefinedTagConfig
+                {
+                    Name = "OWNER",
+                    ChatColor = "lightred",
+                    NameColor = "lightred",
+                    NameTag = "{lightred}OWNER » "
                 }
             };
 
@@ -504,9 +502,11 @@ public class Plugin : BasePlugin
 
             if (_tagConfigs.TryGetValue("all", out var allConfig))
             {
-                if (HasTagConfigValues(allConfig))
+                // Apply DefaultPreset for "all" if specified
+                if (!string.IsNullOrEmpty(allConfig.DefaultPreset) && _predefinedConfigs.TryGetValue(allConfig.DefaultPreset, out var allPreset))
                 {
-                    ApplyConfig(zenithPlayer, allConfig);
+                    ApplyConfig(zenithPlayer, allPreset);
+                    zenithPlayer.SetStorage("ChoosenTag", allConfig.DefaultPreset);
                     configApplied = true;
                 }
                 if (allConfig.AvailableConfigs != null)
@@ -523,11 +523,15 @@ public class Plugin : BasePlugin
                 if (CheckPermissionOrSteamID(player, kvp.Key))
                 {
                     var config = kvp.Value;
-                    if (HasTagConfigValues(config))
+
+                    // Apply DefaultPreset if specified
+                    if (!string.IsNullOrEmpty(config.DefaultPreset) && _predefinedConfigs.TryGetValue(config.DefaultPreset, out var defaultPreset))
                     {
-                        ApplyConfig(zenithPlayer, config);
+                        ApplyConfig(zenithPlayer, defaultPreset);
+                        zenithPlayer.SetStorage("ChoosenTag", config.DefaultPreset);
                         configApplied = true;
                     }
+
                     if (config.AvailableConfigs != null)
                     {
                         availableConfigs.AddRange(config.AvailableConfigs);
@@ -571,14 +575,6 @@ public class Plugin : BasePlugin
         return false;
     }
 
-    private static bool HasTagConfigValues(TagConfig config)
-    {
-        return !string.IsNullOrEmpty(config.ChatColor) ||
-               !string.IsNullOrEmpty(config.ClanTag) ||
-               !string.IsNullOrEmpty(config.NameColor) ||
-               !string.IsNullOrEmpty(config.NameTag);
-    }
-
     private static bool CheckPermissionOrSteamID(CCSPlayerController player, string key)
     {
         if (key.StartsWith('#'))
@@ -603,29 +599,11 @@ public class Plugin : BasePlugin
                Equals(keySteamID, new SteamID(player.SteamID));
     }
 
-    private static void ApplyConfig(IPlayerServices zenithPlayer, TagConfig config)
-    {
-        if (!string.IsNullOrEmpty(config.ChatColor))
-            zenithPlayer.SetChatColor(config.ChatColor);
-
-        if (!string.IsNullOrEmpty(config.ClanTag))
-            zenithPlayer.SetClanTag(config.ClanTag);
-
-        if (!string.IsNullOrEmpty(config.NameColor))
-            zenithPlayer.SetNameColor(config.NameColor);
-
-        if (!string.IsNullOrEmpty(config.NameTag))
-            zenithPlayer.SetNameTag(config.NameTag);
-    }
-
     private static void ApplyConfig(IPlayerServices zenithPlayer, PredefinedTagConfig config)
     {
         if (!string.IsNullOrEmpty(config.ChatColor))
             zenithPlayer.SetChatColor(config.ChatColor);
 
-        if (!string.IsNullOrEmpty(config.ClanTag))
-            zenithPlayer.SetClanTag(config.ClanTag);
-
         if (!string.IsNullOrEmpty(config.NameColor))
             zenithPlayer.SetNameColor(config.NameColor);
 
@@ -633,10 +611,194 @@ public class Plugin : BasePlugin
             zenithPlayer.SetNameTag(config.NameTag);
     }
 
+    private void OnMapStart(string mapName)
+    {
+        // Precache skillgroup icons during map load
+        PrecacheSkillgroups();
+
+        // Initial cache on map start
+        CacheTop100();
+    }
+
+    private void PrecacheSkillgroups()
+    {
+        // Precache default Top 1-100 skillgroups
+        for (int i = 1; i <= TOP100_LIMIT; i++)
+        {
+            string path = $"panorama/images/icons/skillgroups/skillgroup{SKILLGROUP_BASE}{i}.vsvg";
+            Server.PrecacheModel(path);
+        }
+
+        // Precache additional skillgroups from predefined_tags.json
+        _predefinedConfigs ??= GetPredefinedTagConfigs();
+        if (_predefinedConfigs != null)
+        {
+            foreach (var config in _predefinedConfigs.Values)
+            {
+                if (!string.IsNullOrEmpty(config.SkillgroupID))
+                {
+                    // Check if it's outside 1-100 range (already precached)
+                    if (!int.TryParse(config.SkillgroupID.Replace(SKILLGROUP_BASE, ""), out int id) || id < 1 || id > TOP100_LIMIT)
+                    {
+                        string path = $"panorama/images/icons/skillgroups/skillgroup{config.SkillgroupID}.vsvg";
+                        Server.PrecacheModel(path);
+                        Logger.LogInformation("Precached custom skillgroup: {Path}", path);
+                    }
+                }
+            }
+        }
+    }
+
+    private void CacheTop100()
+    {
+        // Prevent too frequent updates
+        if ((DateTime.UtcNow - _top100CacheTriggered).TotalSeconds < 3)
+            return;
+
+        var onlinePlayers = Utilities.GetPlayers()
+            .Where(p => p != null && p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.PlayerConnected)
+            .ToList();
+
+        if (onlinePlayers.Count == 0)
+            return;
+
+        _top100CacheTriggered = DateTime.UtcNow;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                string? connectionString = _moduleServices?.GetConnectionString();
+                if (string.IsNullOrEmpty(connectionString))
+                    return;
+
+                using var connection = new MySqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                var steamIds = onlinePlayers.Select(p => p.SteamID.ToString()).ToList();
+
+                const string query = @"
+                    SELECT
+                        t1.steam_id,
+                        (SELECT COUNT(*) + 1
+                        FROM zenith_player_storage t2
+                        WHERE CAST(JSON_EXTRACT(t2.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)) >
+                            COALESCE(CAST(JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)), 0)
+                        ) as rank_position
+                    FROM zenith_player_storage t1
+                    WHERE
+                        FIND_IN_SET(t1.steam_id, @SteamIds) > 0
+                        AND JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
+                        AND t1.`K4-Zenith-Ranks.storage` IS NOT NULL";
+
+                string steamIdString = string.Join(",", steamIds);
+
+                var results = await connection.QueryAsync<(string SteamId, int Placement)>(
+                    query,
+                    new { SteamIds = steamIdString }
+                );
+
+                foreach (var (SteamId, Placement) in results)
+                {
+                    if (ulong.TryParse(SteamId, out ulong steamId) && Placement <= TOP100_LIMIT)
+                    {
+                        _top100Cache[steamId] = (Placement, DateTime.UtcNow);
+                    }
+                    else if (ulong.TryParse(SteamId, out ulong steamIdOutside))
+                    {
+                        // Remove from cache if player is no longer in Top 100
+                        _top100Cache.TryRemove(steamIdOutside, out _);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to cache Top 100: {Error}", ex.Message);
+            }
+        });
+    }
+
+    private void UpdateSkillgroupsOnScoreboard()
+    {
+        foreach (var kvp in _playerCache)
+        {
+            var player = kvp.Key;
+            var zenithPlayer = kvp.Value;
+
+            if (player == null || !player.IsValid || player.IsBot || player.IsHLTV)
+                continue;
+
+            string? chosenTag = zenithPlayer.GetStorage<string>("ChoosenTag", MODULE_FULL_ID);
+            ApplySkillgroup(player, chosenTag);
+        }
+    }
+
+    private void ApplySkillgroup(CCSPlayerController player, string? chosenTag)
+    {
+        _predefinedConfigs ??= GetPredefinedTagConfigs();
+        if (_predefinedConfigs == null)
+            return;
+
+        string? skillgroupId = null;
+
+        // Priority Logic based on user spec
+        if (chosenTag == "ranking" || chosenTag == "Default")
+        {
+            // Case 1, 2, 4: !tags = Ranking
+            // Check if player is in Top 100
+            if (_top100Cache.TryGetValue(player.SteamID, out var cacheEntry))
+            {
+                // Player is in Top 100 - use ranking skillgroup
+                skillgroupId = $"{SKILLGROUP_BASE}{cacheEntry.Placement}";
+            }
+            else
+            {
+                // Player NOT in Top 100 - fallback to permission skillgroup
+                // Find highest permission preset that has SkillgroupID
+                _tagConfigs ??= GetTagConfigs();
+                if (_tagConfigs != null)
+                {
+                    foreach (var kvp in _tagConfigs)
+                    {
+                        if (kvp.Key == "all")
+                            continue;
+
+                        if (CheckPermissionOrSteamID(player, kvp.Key))
+                        {
+                            // Found permission - get default preset's skillgroup
+                            if (!string.IsNullOrEmpty(kvp.Value.DefaultPreset) &&
+                                _predefinedConfigs.TryGetValue(kvp.Value.DefaultPreset, out var preset) &&
+                                !string.IsNullOrEmpty(preset.SkillgroupID))
+                            {
+                                skillgroupId = preset.SkillgroupID;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (!string.IsNullOrEmpty(chosenTag) && _predefinedConfigs.TryGetValue(chosenTag, out var selectedPreset))
+        {
+            // Case 3: Player explicitly chose a permission preset
+            if (!string.IsNullOrEmpty(selectedPreset.SkillgroupID))
+            {
+                skillgroupId = selectedPreset.SkillgroupID;
+            }
+        }
+
+        // Apply skillgroup to scoreboard
+        if (!string.IsNullOrEmpty(skillgroupId) && int.TryParse(skillgroupId, out int skillgroupInt))
+        {
+            player.CompetitiveWins = 10; // Required to show rank
+            player.CompetitiveRanking = skillgroupInt;
+            player.CompetitiveRankType = 7; // Custom CS:GO style ranks
+        }
+    }
+
     private static void ApplyNullConfig(IPlayerServices player)
     {
         player.SetChatColor(null);
-        player.SetClanTag(null);
         player.SetNameColor(null);
         player.SetNameTag(null);
     }
@@ -700,11 +862,8 @@ public class Plugin : BasePlugin
 
 public class TagConfig
 {
-    public string? ChatColor { get; set; }
-    public string? ClanTag { get; set; }
-    public string? NameColor { get; set; }
-    public string? NameTag { get; set; }
-    public int? Skillgroup { get; set; }
+    public string? DefaultPreset { get; set; }
+    public string? SkillgroupID { get; set; }
     public List<string> AvailableConfigs { get; set; } = [];
 }
 
@@ -712,8 +871,7 @@ public class PredefinedTagConfig
 {
     public string Name { get; set; } = "";
     public string? ChatColor { get; set; }
-    public string? ClanTag { get; set; }
     public string? NameColor { get; set; }
     public string? NameTag { get; set; }
-    public int? Skillgroup { get; set; }
+    public string? SkillgroupID { get; set; }
 }
