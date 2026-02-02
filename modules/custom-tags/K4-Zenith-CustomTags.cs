@@ -75,6 +75,13 @@ public class Plugin : BasePlugin
 
         // Register OnTick for scoreboard skillgroup updates
         RegisterListener<Listeners.OnTick>(UpdateSkillgroupsOnScoreboard);
+
+        // Register OnMapStart to refresh cache on map change
+        RegisterListener<Listeners.OnMapStart>(mapName =>
+        {
+            Logger.LogInformation("[CustomTags] Map changed to {Map}, refreshing Top100 cache...", mapName);
+            AddTimer(3.0f, () => CacheTop100(force: true));
+        });
     }
 
     public override void OnAllPluginsLoaded(bool hotReload)
@@ -146,8 +153,11 @@ public class Plugin : BasePlugin
             CacheTop100();
         }
 
-        // Start Top100 cache timer (every 60 seconds)
-        AddTimer(60.0f, CacheTop100, TimerFlags.REPEAT);
+        // Initial cache call after 3 seconds (allows DB connection to be ready)
+        AddTimer(3.0f, () => CacheTop100());
+
+        // Start Top100 cache timer (every 30 seconds for more responsive updates)
+        AddTimer(30.0f, () => CacheTop100(), TimerFlags.REPEAT);
 
         Logger.LogInformation("Zenith {0} module successfully registered.", MODULE_ID);
     }
@@ -666,77 +676,81 @@ public class Plugin : BasePlugin
         }
     }
 
-    private void CacheTop100()
+    private void CacheTop100(bool force = false)
     {
-        // Prevent too frequent updates
-        if ((DateTime.UtcNow - _top100CacheTriggered).TotalSeconds < 3)
-            return;
-
-        var onlinePlayers = Utilities.GetPlayers()
-            .Where(p => p != null && p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.PlayerConnected)
-            .ToList();
-
-        if (onlinePlayers.Count == 0)
+        // Prevent too frequent updates (unless forced)
+        if (!force && (DateTime.UtcNow - _top100CacheTriggered).TotalSeconds < 5)
             return;
 
         _top100CacheTriggered = DateTime.UtcNow;
+
+        string? connectionString = null;
+        try
+        {
+            connectionString = _moduleServices?.GetConnectionString();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            Logger.LogWarning("[Top100Cache] No connection string available");
+            return;
+        }
 
         Task.Run(async () =>
         {
             try
             {
-                string? connectionString = _moduleServices?.GetConnectionString();
-                if (string.IsNullOrEmpty(connectionString))
-                    return;
-
                 using var connection = new MySqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                var steamIds = onlinePlayers.Select(p => p.SteamID.ToString()).ToList();
-
+                // Query all Top 100 players from database, ordered by points
                 const string query = @"
-                    SELECT
-                        t1.steam_id,
-                        (SELECT COUNT(*) + 1
-                        FROM zenith_player_storage t2
-                        WHERE CAST(JSON_EXTRACT(t2.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)) >
-                            COALESCE(CAST(JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)), 0)
-                        ) as rank_position
-                    FROM zenith_player_storage t1
-                    WHERE
-                        FIND_IN_SET(t1.steam_id, @SteamIds) > 0
-                        AND JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
-                        AND t1.`K4-Zenith-Ranks.storage` IS NOT NULL";
+                    SELECT 
+                        p.steam_id as SteamId,
+                        CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS UNSIGNED) as Points
+                    FROM zenith_player_storage p
+                    WHERE JSON_VALID(p.`K4-Zenith-Ranks.storage`) = 1
+                    AND JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
+                    ORDER BY Points DESC
+                    LIMIT 100";
 
-                string steamIdString = string.Join(",", steamIds);
+                var results = await connection.QueryAsync<TopPlayerResult>(query);
+                var topPlayers = results.ToList();
 
-                var results = await connection.QueryAsync<(string SteamId, int Placement)>(
-                    query,
-                    new { SteamIds = steamIdString }
-                );
+                Logger.LogInformation("[Top100Cache] Query returned {Count} players from database", topPlayers.Count);
 
-                Logger.LogInformation("[Top100Cache] Query returned {Count} results for {PlayerCount} online players",
-                    results.Count(), onlinePlayers.Count);
+                // Clear and rebuild cache
+                _top100Cache.Clear();
+                int position = 1;
 
-                foreach (var (SteamId, Placement) in results)
+                foreach (var player in topPlayers)
                 {
-                    if (ulong.TryParse(SteamId, out ulong steamId) && Placement <= TOP100_LIMIT)
+                    if (!string.IsNullOrEmpty(player.SteamId) && ulong.TryParse(player.SteamId, out ulong steamId))
                     {
-                        _top100Cache[steamId] = (Placement, DateTime.UtcNow);
-                        Logger.LogInformation("[Top100Cache] Cached {SteamId} at position {Placement}", steamId, Placement);
-                    }
-                    else if (ulong.TryParse(SteamId, out ulong steamIdOutside))
-                    {
-                        // Remove from cache if player is no longer in Top 100
-                        _top100Cache.TryRemove(steamIdOutside, out _);
+                        _top100Cache[steamId] = (position, DateTime.UtcNow);
+                        Logger.LogInformation("[Top100Cache] Cached {SteamId} at position {Position} with {Points} points",
+                            steamId, position, player.Points);
+                        position++;
                     }
                 }
+
+                Logger.LogInformation("[Top100Cache] Cache now has {Count} entries", _top100Cache.Count);
             }
             catch (Exception ex)
             {
-                Logger.LogError("Failed to cache Top 100: {Error}", ex.Message);
+                Logger.LogError("[Top100Cache] Failed to cache Top 100: {Error}", ex.Message);
             }
         });
+    }
+
+    private class TopPlayerResult
+    {
+        public string? SteamId { get; set; }
+        public long Points { get; set; }
     }
 
     private void UpdateSkillgroupsOnScoreboard()
@@ -850,6 +864,9 @@ public class Plugin : BasePlugin
 
         _playerCache[player] = zenithPlayer;
         ApplyTagConfig(player);
+
+        // Trigger cache refresh when a new player joins (with delay to allow their data to be ready)
+        AddTimer(2.0f, () => CacheTop100(force: true));
     }
 
     private void OnZenithPlayerUnloaded(CCSPlayerController player)
