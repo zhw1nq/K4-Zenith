@@ -79,7 +79,6 @@ public class Plugin : BasePlugin
         // Register OnMapStart to refresh cache on map change
         RegisterListener<Listeners.OnMapStart>(mapName =>
         {
-            Logger.LogInformation("[CustomTags] Map changed to {Map}, refreshing Top100 cache...", mapName);
             AddTimer(3.0f, () => CacheTop100(force: true));
         });
     }
@@ -721,8 +720,6 @@ public class Plugin : BasePlugin
                 var results = await connection.QueryAsync<TopPlayerResult>(query);
                 var topPlayers = results.ToList();
 
-                Logger.LogInformation("[Top100Cache] Query returned {Count} players from database", topPlayers.Count);
-
                 // Clear and rebuild cache
                 _top100Cache.Clear();
                 int position = 1;
@@ -732,13 +729,9 @@ public class Plugin : BasePlugin
                     if (!string.IsNullOrEmpty(player.SteamId) && ulong.TryParse(player.SteamId, out ulong steamId))
                     {
                         _top100Cache[steamId] = (position, DateTime.UtcNow);
-                        Logger.LogInformation("[Top100Cache] Cached {SteamId} at position {Position} with {Points} points",
-                            steamId, position, player.Points);
                         position++;
                     }
                 }
-
-                Logger.LogInformation("[Top100Cache] Cache now has {Count} entries", _top100Cache.Count);
             }
             catch (Exception ex)
             {
@@ -785,13 +778,9 @@ public class Plugin : BasePlugin
             {
                 // Player is in Top 100 - use ranking skillgroup
                 skillgroupId = $"{SKILLGROUP_BASE}{cacheEntry.Placement}";
-                Logger.LogInformation("[Skillgroup] Player {Name} ({SteamID}) is Top {Placement}, using skillgroup {ID}",
-                    player.PlayerName, player.SteamID, cacheEntry.Placement, skillgroupId);
             }
             else
             {
-                Logger.LogInformation("[Skillgroup] Player {Name} ({SteamID}) NOT in Top100 cache (cache size: {Size})",
-                    player.PlayerName, player.SteamID, _top100Cache.Count);
                 // Player NOT in Top 100 - fallback to permission skillgroup
                 // Find highest permission preset that has SkillgroupID
                 _tagConfigs ??= GetTagConfigs();
