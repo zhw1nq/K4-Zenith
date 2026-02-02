@@ -37,6 +37,13 @@ namespace Zenith
 			{
 				Task.Run(async () => await MigrateOldData());
 			}, CommandUsage.SERVER_ONLY, permission: "@zenith/root");
+
+			RegisterZenithCommand("css_zdebug", "Toggle CallerIdentifier debug mode", (CCSPlayerController? player, CommandInfo command) =>
+			{
+				CallerIdentifier.DebugMode = !CallerIdentifier.DebugMode;
+				Logger.LogWarning($"CallerIdentifier DebugMode is now: {CallerIdentifier.DebugMode}");
+				Player.Find(player)?.Print($"CallerIdentifier DebugMode is now: {CallerIdentifier.DebugMode}");
+			}, CommandUsage.CLIENT_AND_SERVER, permission: "@zenith/root");
 		}
 	}
 }

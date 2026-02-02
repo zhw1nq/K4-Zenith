@@ -53,6 +53,29 @@ public class Plugin : BasePlugin
     private Dictionary<string, TagConfig>? _tagConfigs;
     private Dictionary<string, PredefinedTagConfig>? _predefinedConfigs;
 
+    public override void Load(bool hotReload)
+    {
+        // Precache skillgroup icons using OnServerPrecacheResources (correct method for panorama resources)
+        RegisterListener<Listeners.OnServerPrecacheResources>(manifest =>
+        {
+            // Precache native skillgroups (0-18)
+            for (int i = 0; i <= 18; i++)
+            {
+                manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{i}.svg");
+            }
+
+            // Precache custom Top 1-100 skillgroups (2026011-202601100)
+            for (int i = 1; i <= TOP100_LIMIT; i++)
+            {
+                manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{SKILLGROUP_BASE}{i}.vsvg");
+            }
+
+            Logger.LogInformation("Precached {Count} custom skillgroup icons", TOP100_LIMIT);
+        });
+
+        // Register OnTick for scoreboard skillgroup updates
+        RegisterListener<Listeners.OnTick>(UpdateSkillgroupsOnScoreboard);
+    }
 
     public override void OnAllPluginsLoaded(bool hotReload)
     {
@@ -123,14 +146,8 @@ public class Plugin : BasePlugin
             CacheTop100();
         }
 
-        // Register OnMapStart for precaching skillgroup icons (must be done during map load)
-        RegisterListener<Listeners.OnMapStart>(OnMapStart);
-
         // Start Top100 cache timer (every 60 seconds)
         AddTimer(60.0f, CacheTop100, TimerFlags.REPEAT);
-
-        // Register OnTick for scoreboard skillgroup updates
-        RegisterListener<Listeners.OnTick>(UpdateSkillgroupsOnScoreboard);
 
         Logger.LogInformation("Zenith {0} module successfully registered.", MODULE_ID);
     }
@@ -698,11 +715,15 @@ public class Plugin : BasePlugin
                     new { SteamIds = steamIdString }
                 );
 
+                Logger.LogInformation("[Top100Cache] Query returned {Count} results for {PlayerCount} online players",
+                    results.Count(), onlinePlayers.Count);
+
                 foreach (var (SteamId, Placement) in results)
                 {
                     if (ulong.TryParse(SteamId, out ulong steamId) && Placement <= TOP100_LIMIT)
                     {
                         _top100Cache[steamId] = (Placement, DateTime.UtcNow);
+                        Logger.LogInformation("[Top100Cache] Cached {SteamId} at position {Placement}", steamId, Placement);
                     }
                     else if (ulong.TryParse(SteamId, out ulong steamIdOutside))
                     {
@@ -750,9 +771,13 @@ public class Plugin : BasePlugin
             {
                 // Player is in Top 100 - use ranking skillgroup
                 skillgroupId = $"{SKILLGROUP_BASE}{cacheEntry.Placement}";
+                Logger.LogInformation("[Skillgroup] Player {Name} ({SteamID}) is Top {Placement}, using skillgroup {ID}",
+                    player.PlayerName, player.SteamID, cacheEntry.Placement, skillgroupId);
             }
             else
             {
+                Logger.LogInformation("[Skillgroup] Player {Name} ({SteamID}) NOT in Top100 cache (cache size: {Size})",
+                    player.PlayerName, player.SteamID, _top100Cache.Count);
                 // Player NOT in Top 100 - fallback to permission skillgroup
                 // Find highest permission preset that has SkillgroupID
                 _tagConfigs ??= GetTagConfigs();
@@ -792,7 +817,18 @@ public class Plugin : BasePlugin
         {
             player.CompetitiveWins = 10; // Required to show rank
             player.CompetitiveRanking = skillgroupInt;
-            player.CompetitiveRankType = 7; // Custom CS:GO style ranks
+            player.CompetitiveRankType = 12; // Competitive mode (uses skillgroup path)
+
+            // Force UI update with SetStateChanged
+            Server.NextFrame(() =>
+            {
+                if (player?.IsValid == true && player.PlayerPawn?.IsValid == true)
+                {
+                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_iCompetitiveRanking");
+                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_iCompetitiveWins");
+                    Utilities.SetStateChanged(player, "CCSPlayerController", "m_iCompetitiveRankType");
+                }
+            });
         }
     }
 
