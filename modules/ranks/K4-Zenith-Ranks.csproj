@@ -27,7 +27,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="KitsuneMenu">
-      <HintPath>/Users/sples/Projects/CS2_Random/Menu-main/src/bin/KitsuneMenu/shared/KitsuneMenu/KitsuneMenu.dll</HintPath>
+      <HintPath>$(ProjectDir)/../../external-dlls/KitsuneMenu.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
