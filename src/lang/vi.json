@@ -1,0 +1,23 @@
+{
+    "k4.general.prefix": "{silver}- {gold}+ Zenith + {silver}- ",
+    "k4.tag.all": "{white}[TẤT CẢ] ",
+    "k4.tag.dead": "{grey}[CHẾT] ",
+    "k4.tag.team.ct": "{lightblue}[CT] ",
+    "k4.tag.team.t": "{yellow}[T] ",
+    "k4.tag.team.spectator": "{white}[QUAN SÁT] ",
+    "k4.tag.team.unassigned": "{white}[CHƯA CHỌN] ",
+    "k4.tag.separator": "{white}: ",
+    "k4.command.help": "{silver}Cách dùng: {lime}!{0} {1}",
+    "k4.command.no-permission": "{lightred}Bạn không có quyền sử dụng lệnh này.",
+    "k4.command.server-only": "{lightred}Lệnh này chỉ dành cho máy chủ.",
+    "k4.command.client-only": "{lightred}Lệnh này chỉ dành cho người chơi.",
+    "k4.settings.title": " + Cài Đặt +",
+    "k4.settings.disabled": "Tắt",
+    "k4.settings.enabled": "Bật",
+    "k4.settings.invalid-input": "Dữ liệu không hợp lệ. Vui lòng nhập số nguyên.",
+    "settings.ShowClanTags": "Hiển Thị Tag Clan",
+    "settings.ShowChatTags": "Hiển Thị Tag Chat",
+    "settings.FreezeInMenu": "Đứng Yên Khi Mở Menu",
+    "reset.storage.success": "Đã đặt lại dữ liệu {0} cho tất cả người chơi.",
+    "reset.storage.all.modules": "tất cả module"
+}

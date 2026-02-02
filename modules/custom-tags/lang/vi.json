@@ -1,0 +1,10 @@
+{
+    "customtags.menu.title": "Chọn Cấu Hình Tag",
+    "customtags.menu.default": "Mặc định",
+    "customtags.menu.none": "Không có",
+    "customtags.applied.default": "{silver}Đã áp dụng cấu hình tag mặc định.",
+    "customtags.applied.none": "{silver}Đã xóa tất cả cấu hình tag.",
+    "customtags.applied.config": "{silver}Đã áp dụng cấu hình tag {gold}{0}{silver}.",
+    "customtags.applied.default_predefined": "{silver}Đã áp dụng cấu hình tag mặc định: {gold}{0}",
+    "customtags.menu.no-tags": "Không có tag nào"
+}

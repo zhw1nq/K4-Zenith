@@ -93,9 +93,4 @@ curl -sL https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite
 print_message "${BLUE}" "Cleaning up unnecessary files..."
 find ./Zenith -type f \( -name "*.pdb" -o -name "*.yaml" -o -name ".DS_Store" \) -delete 2>/dev/null
 
-# Clean up build directories
-print_message "${BLUE}" "Cleaning up build directories..."
-find ./src ./src-api ./modules -type d -name "bin" -exec rm -rf {} + 2>/dev/null
-find ./src ./src-api ./modules -type d -name "obj" -exec rm -rf {} + 2>/dev/null
-
 print_message "${GREEN}" "Deployment completed successfully!"

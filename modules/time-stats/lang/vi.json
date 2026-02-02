@@ -1,0 +1,20 @@
+{
+    "timestats.notification": "{silver}Tổng thời gian chơi của bạn trên máy chủ là {gold}{0}{silver}. Cảm ơn bạn đã dành thời gian với chúng tôi!",
+    "timestats.center.title": "+ Thống Kê Thời Gian Chơi +",
+    "timestats.center.total.label": "Tổng:",
+    "timestats.center.teams.label": "Đội:",
+    "timestats.center.teams.value": "T: {0} | CT: {1}",
+    "timestats.center.spectator.label": "Quan Sát:",
+    "timestats.center.status.label": "Trạng Thái:",
+    "timestats.center.status.value": "Sống: {0} | Chết: {1}",
+    "timestats.time.format": "{0}n {1}g {2}p",
+    "settings.ShowPlaytime": "Thông Báo Thời Gian Chơi",
+    "timestats.chat.title": "{lime}{0}{silver} - Thống Kê Thời Gian Chơi",
+    "timestats.chat.total": "--- {silver}Tổng Thời Gian Chơi: {lime}{0}",
+    "timestats.chat.teams": "--- {silver}Thời Gian Theo Đội: {red}T: {0}{silver}, {blue}CT: {1}",
+    "timestats.chat.spectator": "--- {silver}Thời Gian Quan Sát: {grey}{0}",
+    "timestats.chat.status": "--- {silver}Trạng Thái: {green}Sống: {0}{silver}, {darkred}Chết: {1}",
+    "timestats.today.title": "+ Thời Gian Chơi Hôm Nay +",
+    "timestats.today.chat.title": "{lime}{0}{silver} - Thời Gian Chơi Hôm Nay",
+    "timestats.today.chat.playtime": "--- {silver}Thời Gian Chơi Hôm Nay: {lime}{0}"
+}
