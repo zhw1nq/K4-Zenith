@@ -486,7 +486,40 @@ public class Plugin : BasePlugin
                 return;
             }
 
-            if (choosenTag != "Default" && _predefinedConfigs.TryGetValue(choosenTag, out var chosenPredefinedConfig))
+            // Handle "Default" or "ranking" - apply chat tags from highest priority permission, but keep skillgroup ranking-based
+            if (choosenTag == "Default" || choosenTag == "ranking")
+            {
+                // Set to "ranking" so skillgroup logic uses Top100 or fallback
+                zenithPlayer.SetStorage("ChoosenTag", "ranking");
+
+                // Apply chat tags from highest priority permission's default preset
+                _tagConfigs ??= GetTagConfigs();
+                if (_tagConfigs != null)
+                {
+                    // Sort by Priority descending to get highest priority first
+                    var sortedConfigs = _tagConfigs
+                        .Where(kvp => kvp.Key != "all")
+                        .OrderByDescending(kvp => kvp.Value.Priority);
+
+                    foreach (var kvp in sortedConfigs)
+                    {
+                        if (CheckPermissionOrSteamID(player, kvp.Key))
+                        {
+                            // Found highest priority permission - apply its default preset's chat tags
+                            if (!string.IsNullOrEmpty(kvp.Value.DefaultPreset) &&
+                                _predefinedConfigs.TryGetValue(kvp.Value.DefaultPreset, out var preset))
+                            {
+                                ApplyConfig(zenithPlayer, preset);
+                            }
+                            break;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Handle explicitly chosen preset (not Default/ranking)
+            if (_predefinedConfigs.TryGetValue(choosenTag, out var chosenPredefinedConfig))
             {
                 bool existsForUser = false;
                 foreach (var kvp in _tagConfigs)
@@ -495,6 +528,7 @@ public class Plugin : BasePlugin
                     {
                         ApplyConfig(zenithPlayer, chosenPredefinedConfig);
                         existsForUser = true;
+                        break;
                     }
                 }
 
@@ -507,7 +541,7 @@ public class Plugin : BasePlugin
                         {
                             if (!CheckTagAvailability(player, choosenTag))
                             {
-                                zenithPlayer.SetStorage("ChoosenTag", "Default");
+                                zenithPlayer.SetStorage("ChoosenTag", "ranking");
                                 ApplyTagConfig(player);
                                 _removalTimers.Remove(player);
                             }
@@ -516,69 +550,15 @@ public class Plugin : BasePlugin
                     }
                     else
                     {
-                        zenithPlayer.SetStorage("ChoosenTag", "Default");
+                        // No permission - reset to ranking
+                        zenithPlayer.SetStorage("ChoosenTag", "ranking");
                     }
-                }
-                else
-                    return;
-            }
-
-            bool configApplied = false;
-            List<string> availableConfigs = [];
-
-            if (_tagConfigs.TryGetValue("all", out var allConfig))
-            {
-                // Apply DefaultPreset for "all" if specified
-                if (!string.IsNullOrEmpty(allConfig.DefaultPreset) && _predefinedConfigs.TryGetValue(allConfig.DefaultPreset, out var allPreset))
-                {
-                    ApplyConfig(zenithPlayer, allPreset);
-                    zenithPlayer.SetStorage("ChoosenTag", allConfig.DefaultPreset);
-                    configApplied = true;
-                }
-                if (allConfig.AvailableConfigs != null)
-                {
-                    availableConfigs.AddRange(allConfig.AvailableConfigs);
                 }
             }
-
-            foreach (var kvp in _tagConfigs)
+            else
             {
-                if (kvp.Key == "all")
-                    continue;
-
-                if (CheckPermissionOrSteamID(player, kvp.Key))
-                {
-                    var config = kvp.Value;
-
-                    // Apply DefaultPreset if specified
-                    if (!string.IsNullOrEmpty(config.DefaultPreset) && _predefinedConfigs.TryGetValue(config.DefaultPreset, out var defaultPreset))
-                    {
-                        ApplyConfig(zenithPlayer, defaultPreset);
-                        zenithPlayer.SetStorage("ChoosenTag", config.DefaultPreset);
-                        configApplied = true;
-                    }
-
-                    if (config.AvailableConfigs != null)
-                    {
-                        availableConfigs.AddRange(config.AvailableConfigs);
-                    }
-                    break;
-                }
-            }
-
-            if (!configApplied && availableConfigs.Count > 0)
-            {
-                foreach (var configName in availableConfigs)
-                {
-                    if (_predefinedConfigs.TryGetValue(configName, out var availablePredefinedConfig))
-                    {
-                        ApplyConfig(zenithPlayer, availablePredefinedConfig);
-                        _moduleServices?.PrintForPlayer(player, Localizer.ForPlayer(player, "customtags.applied.default_predefined", availablePredefinedConfig.Name));
-                        zenithPlayer.SetStorage("ChoosenTag", configName);
-                        configApplied = true;
-                        break;
-                    }
-                }
+                // Unknown preset - reset to ranking
+                zenithPlayer.SetStorage("ChoosenTag", "ranking");
             }
         }
         catch (Exception ex)
@@ -781,16 +761,17 @@ public class Plugin : BasePlugin
             }
             else
             {
-                // Player NOT in Top 100 - fallback to permission skillgroup
-                // Find highest permission preset that has SkillgroupID
+                // Player NOT in Top 100 - fallback to highest priority permission's skillgroup
                 _tagConfigs ??= GetTagConfigs();
                 if (_tagConfigs != null)
                 {
-                    foreach (var kvp in _tagConfigs)
-                    {
-                        if (kvp.Key == "all")
-                            continue;
+                    // Sort by Priority descending to get highest priority first
+                    var sortedConfigs = _tagConfigs
+                        .Where(kvp => kvp.Key != "all")
+                        .OrderByDescending(kvp => kvp.Value.Priority);
 
+                    foreach (var kvp in sortedConfigs)
+                    {
                         if (CheckPermissionOrSteamID(player, kvp.Key))
                         {
                             // Found permission - get default preset's skillgroup
@@ -904,6 +885,7 @@ public class Plugin : BasePlugin
 
 public class TagConfig
 {
+    public int Priority { get; set; } = 0;  // Higher = higher priority (e.g., Owner=100, Admin=50, VIP=10)
     public string? DefaultPreset { get; set; }
     public string? SkillgroupID { get; set; }
     public List<string> AvailableConfigs { get; set; } = [];
