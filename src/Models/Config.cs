@@ -21,7 +21,7 @@ namespace Zenith
             RegisterModuleConfig("Database", "Sslmode", "The SSL mode for the database connection (none, preferred, required, verifyca, verifyfull)", "preferred", ConfigFlag.Locked);
             RegisterModuleConfig("Database", "TablePurgeDays", "The number of days of inactivity after which unused data is automatically purged", 30, ConfigFlag.Locked);
             RegisterModuleConfig("Database", "SaveOnRoundEnd", "Whether to save every player setting and storage change on round ends", true, ConfigFlag.Locked | ConfigFlag.Global);
-            RegisterModuleConfig("Database", "AutoSaveInterval", "The interval in minutes for automatic saving of player settings and storage (0 - disable)", 0, ConfigFlag.Locked | ConfigFlag.Global);
+            RegisterModuleConfig("Database", "AutoSaveInterval", "The interval in minutes for automatic saving of player settings and storage (0 - disable)", 5, ConfigFlag.Locked | ConfigFlag.Global);
 
             // Commands settings
             RegisterModuleConfig("Commands", "SettingsCommands", "Open the settings menu for players", new List<string> { "settings", "preferences", "prefs" });
