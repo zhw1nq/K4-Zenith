@@ -96,7 +96,11 @@ public sealed partial class Player
     {
         if (Controller == null || !Controller.IsValid)
         {
-            RemoveFromList(SteamID);
+            // Chỉ remove nếu player hiện tại trong List là chính mình
+            if (List.TryGetValue(SteamID, out var currentPlayer) && currentPlayer == this)
+            {
+                RemoveFromList(SteamID);
+            }
             return;
         }
 
@@ -327,7 +331,12 @@ public sealed partial class Player
             }
             finally
             {
-                RemoveFromList(SteamID);
+                // Chỉ remove nếu player hiện tại trong List là chính mình
+                // Tránh race condition khi player reconnect nhanh
+                if (List.TryGetValue(SteamID, out var currentPlayer) && currentPlayer == this)
+                {
+                    RemoveFromList(SteamID);
+                }
             }
         });
     }
