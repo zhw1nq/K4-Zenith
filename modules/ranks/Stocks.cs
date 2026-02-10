@@ -41,13 +41,13 @@ public sealed partial class Plugin : BasePlugin
             points = (int)(points * vipMultiplier);
         }
 
-        long currentPoints = player.GetStorage<long>("Points");
+        long currentPoints = player.GetStorage<long>("Points", MODULE_ID);
         long newPoints = Math.Max(0, currentPoints + points);
 
         if (currentPoints == newPoints)
             return;
 
-        player.SetStorage("Points", newPoints);
+        player.SetStorage("Points", newPoints, false, MODULE_ID);
         playerData.LastUpdate = DateTime.Now;
 
         if (scoreboardSync && player.Controller.Score != (int)newPoints)
@@ -57,7 +57,7 @@ public sealed partial class Plugin : BasePlugin
 
         UpdatePlayerRank(player, playerData, newPoints);
 
-        if (showSummaries || !player.GetSetting<bool>("ShowRankChanges"))
+        if (showSummaries || !player.GetSetting<bool>("ShowRankChanges", MODULE_ID))
         {
             _roundPoints[player.Controller] = _roundPoints.TryGetValue(player.Controller, out int existingPoints)
                 ? existingPoints + points
@@ -78,7 +78,7 @@ public sealed partial class Plugin : BasePlugin
         if (determinedRank?.Id != playerData.Rank?.Id)
         {
             string newRankName = determinedRank?.Name ?? Localizer.ForPlayer(player.Controller, "k4.phrases.rank.none");
-            player.SetStorage("Rank", newRankName);
+            player.SetStorage("Rank", newRankName, false, MODULE_ID);
 
             bool isRankUp = playerData.Rank is null || CompareRanks(determinedRank, playerData.Rank) > 0;
 
@@ -114,7 +114,7 @@ public sealed partial class Plugin : BasePlugin
             return rankInfo;
         }
 
-        var currentPoints = player.GetStorage<long>("Points");
+        var currentPoints = player.GetStorage<long>("Points", MODULE_ID);
 
         var (determinedRank, nextRank) = DetermineRanks(currentPoints);
 
@@ -155,8 +155,8 @@ public sealed partial class Plugin : BasePlugin
         if (!_configAccessor.GetValue<bool>("Settings", "DynamicDeathPoints"))
             return basePoints;
 
-        long attackerPoints = attacker.GetStorage<long>("Points");
-        long victimPoints = victim.GetStorage<long>("Points");
+        long attackerPoints = attacker.GetStorage<long>("Points", MODULE_ID);
+        long victimPoints = victim.GetStorage<long>("Points", MODULE_ID);
 
         if (attackerPoints <= 0 || victimPoints <= 0)
             return basePoints;

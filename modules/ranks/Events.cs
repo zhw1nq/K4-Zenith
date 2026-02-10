@@ -66,7 +66,7 @@ namespace Zenith_Ranks
 
                     if (pointSummary)
                     {
-                        if (player.GetSetting<bool>("ShowRankChanges") && _roundPoints.TryGetValue(player.Controller, out int points))
+                        if (player.GetSetting<bool>("ShowRankChanges", MODULE_ID) && _roundPoints.TryGetValue(player.Controller, out int points))
                         {
                             string message = points > 0 ? Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-earn", points) : Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-lose", points);
                             player.Print(message);
@@ -319,7 +319,7 @@ namespace Zenith_Ranks
                         return;
 
                     string? eventInfo = attacker != null && _plugin._configAccessor.GetValue<bool>("Settings", "ExtendedDeathMessages")
-                        ? (_plugin.Localizer.ForPlayer(victim.Controller, "k4.phrases.death-extended", attacker.Name, $"{attacker.GetStorage<long>("Points"):N0}") ?? string.Empty)
+                        ? (_plugin.Localizer.ForPlayer(victim.Controller, "k4.phrases.death-extended", attacker.Name, $"{attacker.GetStorage<long>("Points", MODULE_ID):N0}") ?? string.Empty)
                         : null;
 
                     int points = attacker != null && _plugin._configAccessor.GetValue<bool>("Settings", "DynamicDeathPoints")
@@ -350,7 +350,7 @@ namespace Zenith_Ranks
             private void HandleKillEvent(IPlayerServices attacker, IPlayerServices? victim, EventPlayerDeath deathEvent)
             {
                 string? eventInfo = victim != null && _plugin._configAccessor.GetValue<bool>("Settings", "ExtendedDeathMessages")
-                    ? (_plugin.Localizer.ForPlayer(attacker.Controller, "k4.phrases.kill-extended", victim.Name, $"{victim.GetStorage<long>("Points"):N0}") ?? string.Empty)
+                    ? (_plugin.Localizer.ForPlayer(attacker.Controller, "k4.phrases.kill-extended", victim.Name, $"{victim.GetStorage<long>("Points", MODULE_ID):N0}") ?? string.Empty)
                     : null;
 
                 int points = _plugin._configAccessor.GetValue<bool>("Settings", "DynamicDeathPoints") && victim != null
@@ -451,7 +451,7 @@ namespace Zenith_Ranks
                 else
                 {
                     string? eventInfo = victim != null && _plugin._configAccessor.GetValue<bool>("Settings", "ExtendedDeathMessages")
-                        ? (_plugin.Localizer.ForPlayer(assister.Controller, "k4.phrases.assist-extended", victim.Name, $"{victim.GetStorage<long>("Points"):N0}") ?? string.Empty)
+                        ? (_plugin.Localizer.ForPlayer(assister.Controller, "k4.phrases.assist-extended", victim.Name, $"{victim.GetStorage<long>("Points", MODULE_ID):N0}") ?? string.Empty)
                         : null;
 
                     _plugin.ModifyPlayerPoints(assister, _plugin._configAccessor.GetValue<int>("Points", "Assist"), "k4.events.assist", eventInfo);

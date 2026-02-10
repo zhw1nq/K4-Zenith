@@ -295,10 +295,9 @@ public sealed partial class Player
             await LoadDataAsync(connection, Settings, TABLE_PLAYER_SETTINGS, moduleDefaultSettings);
             await LoadDataAsync(connection, Storage, TABLE_PLAYER_STORAGE, moduleDefaultStorage);
 
-            Loaded = true;
-
             Server.NextWorldUpdate(() =>
             {
+                Loaded = true;
                 _plugin._moduleServices?.InvokeZenithPlayerLoaded(Controller!);
 
                 if (_plugin._pluginServerPlaceholders.IsEmpty)

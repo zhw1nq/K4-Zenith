@@ -56,6 +56,12 @@ public sealed partial class Player
         if (List.Values.Any(player => player.Controller == controller))
             return;
 
+        // Dispose old instance if reconnecting before previous Dispose completed
+        if (SteamID != 0 && List.TryGetValue(SteamID, out var existingPlayer))
+        {
+            existingPlayer.Dispose();
+        }
+
         AddToList(this);
 
         Task.Run(async () =>
@@ -313,8 +319,6 @@ public sealed partial class Player
 
     public void Dispose()
     {
-        _plugin._moduleServices?.InvokeZenithPlayerUnloaded(Controller!);
-
         Task.Run(async () =>
         {
             try
@@ -327,10 +331,28 @@ public sealed partial class Player
             }
             catch (Exception ex)
             {
-                _plugin.Logger.LogError($"Error saving data for player {Name} (SteamID: {SteamID}) during disposal: {ex.Message}");
+                _plugin.Logger.LogError($"Error saving data for player {Name} (SteamID: {SteamID}) during disposal: {ex.Message}. Retrying...");
+                try
+                {
+                    await Task.Delay(1000);
+                    if (Loaded)
+                    {
+                        await SaveDataAsync(Settings, TABLE_PLAYER_SETTINGS);
+                        await SaveDataAsync(Storage, TABLE_PLAYER_STORAGE);
+                    }
+                }
+                catch (Exception retryEx)
+                {
+                    _plugin.Logger.LogError($"Retry save also failed for player {Name} (SteamID: {SteamID}): {retryEx.Message}");
+                }
             }
             finally
             {
+                Server.NextWorldUpdate(() =>
+                {
+                    _plugin._moduleServices?.InvokeZenithPlayerUnloaded(Controller!);
+                });
+
                 // Chỉ remove nếu player hiện tại trong List là chính mình
                 // Tránh race condition khi player reconnect nhanh
                 if (List.TryGetValue(SteamID, out var currentPlayer) && currentPlayer == this)
