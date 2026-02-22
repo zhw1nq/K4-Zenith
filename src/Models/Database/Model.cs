@@ -20,7 +20,12 @@ public partial class Database(Plugin plugin)
 			ConvertZeroDateTime = true,
 			TreatTinyAsBoolean = true,
 			OldGuids = true,
-			CharacterSet = "utf8mb4"
+			CharacterSet = "utf8mb4",
+			Pooling = true,
+			MinimumPoolSize = 1,
+			MaximumPoolSize = 20,
+			ConnectionTimeout = 10,
+			ConnectionIdleTimeout = 300
 		};
 
 		return new MySqlConnection(builder.ToString());

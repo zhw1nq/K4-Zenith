@@ -453,7 +453,7 @@ public sealed partial class Player
         }
         catch (Exception ex)
         {
-            _plugin.Logger.LogError("Error saving player data for player {SteamID}: {ErrorMessage}", SteamID, ex.Message);
+            _plugin.Logger.LogError("Error saving player data for player {SteamID}: {ErrorMessage}\n{StackTrace}", SteamID, ex.Message, ex.StackTrace);
         }
     }
 
@@ -741,42 +741,54 @@ public sealed partial class Player
         if (playerDataToSave.Count == 0)
             return;
 
-        try
+        for (int attempt = 0; attempt < 2; attempt++)
         {
-            using var connection = plugin.Database.CreateConnection();
-            await connection.OpenAsync();
-
-            using var transaction = await connection.BeginTransactionAsync();
-
             try
             {
-                foreach (var isStorage in new[] { false, true })
+                using var connection = plugin.Database.CreateConnection();
+                await connection.OpenAsync();
+
+                using var transaction = await connection.BeginTransactionAsync();
+
+                try
                 {
-                    string tableName = isStorage ? TABLE_PLAYER_STORAGE : TABLE_PLAYER_SETTINGS;
-
-                    foreach (var playerData in playerDataToSave)
+                    foreach (var isStorage in new[] { false, true })
                     {
-                        var steamId = playerData.Key;
-                        var data = isStorage ? playerData.Value.Storage : playerData.Value.Settings;
+                        string tableName = isStorage ? TABLE_PLAYER_STORAGE : TABLE_PLAYER_SETTINGS;
 
-                        if (data.Count == 0)
-                            continue;
+                        foreach (var playerData in playerDataToSave)
+                        {
+                            var steamId = playerData.Key;
+                            var data = isStorage ? playerData.Value.Storage : playerData.Value.Settings;
 
-                        await SavePlayerDataToDatabase(connection, tableName, steamId, data, transaction);
+                            if (data.Count == 0)
+                                continue;
+
+                            await SavePlayerDataToDatabase(connection, tableName, steamId, data, transaction);
+                        }
                     }
-                }
 
-                await transaction.CommitAsync();
+                    await transaction.CommitAsync();
+                    return; // Success, exit retry loop
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                throw;
+                if (attempt == 0)
+                {
+                    plugin.Logger.LogWarning($"Error saving player data (attempt 1/2): {ex.Message}. Retrying in 2s...");
+                    await Task.Delay(2000);
+                }
+                else
+                {
+                    plugin.Logger.LogError($"Error saving player data (attempt 2/2): {ex.Message}\n{ex.StackTrace}");
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            plugin.Logger.LogError($"An error occurred while saving player data: {ex.Message}");
         }
     }
 
