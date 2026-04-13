@@ -14,6 +14,8 @@ namespace Zenith.Migrations
 					.WithColumn("player_rank_id").AsInt32().ForeignKey("FK_player_overrides_rank_id", "zenith_bans_player_ranks", "id")
 					.WithColumn("command").AsString(100).NotNullable()
 					.WithColumn("value").AsBoolean();
+
+				Execute.Sql("ALTER TABLE zenith_bans_player_overrides CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 		}
 

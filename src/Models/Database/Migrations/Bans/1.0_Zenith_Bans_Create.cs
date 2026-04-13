@@ -12,11 +12,11 @@ namespace Zenith.Migrations
 				Create.Table("zenith_bans_players")
 					.WithColumn("id").AsInt32().PrimaryKey().Identity()
 					.WithColumn("steam_id").AsInt64().Unique()
-					.WithColumn("name").AsString(64).Nullable()
+					.WithColumn("name").AsString(255).Nullable()
 					.WithColumn("ip_addresses").AsCustom("JSON").Nullable()
 					.WithColumn("last_online").AsDateTime().Nullable();
 
-				Execute.Sql("ALTER TABLE zenith_bans_players CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;");
+				Execute.Sql("ALTER TABLE zenith_bans_players CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_bans_player_ranks").Exists())
@@ -31,7 +31,7 @@ namespace Zenith.Migrations
 					.WithColumn("rank_expiry").AsDateTime().Nullable();
 
 				Create.UniqueConstraint("unique_player_server").OnTable("zenith_bans_player_ranks").Columns("steam_id", "server_ip");
-				Execute.Sql("ALTER TABLE zenith_bans_player_ranks CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;");
+				Execute.Sql("ALTER TABLE zenith_bans_player_ranks CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_bans_admin_groups").Exists())
@@ -42,7 +42,7 @@ namespace Zenith.Migrations
 					.WithColumn("permissions").AsCustom("JSON").Nullable()
 					.WithColumn("immunity").AsInt32().Nullable();
 
-				Execute.Sql("ALTER TABLE zenith_bans_admin_groups CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;");
+				Execute.Sql("ALTER TABLE zenith_bans_admin_groups CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_bans_punishments").Exists())
@@ -60,7 +60,7 @@ namespace Zenith.Migrations
 					.WithColumn("server_ip").AsString(50).NotNullable().WithDefaultValue("all")
 					.WithColumn("reason").AsCustom("TEXT").Nullable();
 
-				Execute.Sql("ALTER TABLE zenith_bans_punishments CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;");
+				Execute.Sql("ALTER TABLE zenith_bans_punishments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 		}
 

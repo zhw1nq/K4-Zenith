@@ -15,6 +15,7 @@ namespace Zenith.Migrations
 					.WithColumn("ip_address").AsString(45).NotNullable();
 
 				Create.UniqueConstraint("unique_player_ip").OnTable("zenith_bans_ip_addresses").Columns("player_id", "ip_address");
+				Execute.Sql("ALTER TABLE zenith_bans_ip_addresses CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (Schema.Table("zenith_bans_players").Exists())
@@ -63,6 +64,8 @@ namespace Zenith.Migrations
 					.WithColumn("id").AsInt32().PrimaryKey().Identity()
 					.WithColumn("player_rank_id").AsInt32().ForeignKey("FK_player_groups_rank_id", "zenith_bans_player_ranks", "id")
 					.WithColumn("group_name").AsString(50).NotNullable();
+
+				Execute.Sql("ALTER TABLE zenith_bans_player_groups CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_bans_player_permissions").Exists())
@@ -71,6 +74,8 @@ namespace Zenith.Migrations
 					.WithColumn("id").AsInt32().PrimaryKey().Identity()
 					.WithColumn("player_rank_id").AsInt32().ForeignKey("FK_player_permissions_rank_id", "zenith_bans_player_ranks", "id")
 					.WithColumn("permission").AsString(100).NotNullable();
+
+				Execute.Sql("ALTER TABLE zenith_bans_player_permissions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (Schema.Table("zenith_bans_admin_groups").Exists() && Schema.Table("zenith_bans_admin_groups").Column("permissions").Exists())
@@ -82,6 +87,8 @@ namespace Zenith.Migrations
 					.WithColumn("id").AsInt32().PrimaryKey().Identity()
 					.WithColumn("group_id").AsInt32().ForeignKey("FK_admin_group_permissions_group_id", "zenith_bans_admin_groups", "id")
 					.WithColumn("permission").AsString(100).NotNullable();
+
+				Execute.Sql("ALTER TABLE zenith_bans_admin_group_permissions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (Schema.Table("zenith_bans_punishments").Exists())
@@ -110,6 +117,8 @@ namespace Zenith.Migrations
 
 					if (!Schema.Table("zenith_bans_punishments").Constraint("FK_punishments_player_id").Exists())
 						Create.ForeignKey("FK_punishments_player_id").FromTable("zenith_bans_punishments").ForeignColumn("player_id").ToTable("zenith_bans_players").PrimaryColumn("id");
+
+					Execute.Sql("ALTER TABLE zenith_bans_punishments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 
 					Execute.Sql(@"
 						INSERT INTO zenith_bans_punishments (player_id, status, type, duration, created_at, expires_at, admin_id, removed_at, remove_admin_id, server_ip, reason)

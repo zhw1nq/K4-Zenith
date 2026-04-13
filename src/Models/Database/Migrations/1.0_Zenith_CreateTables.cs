@@ -11,16 +11,20 @@ namespace Zenith.Migrations
 			{
 				Create.Table("zenith_player_settings")
 					.WithColumn("steam_id").AsString(32).PrimaryKey()
-					.WithColumn("name").AsString(64).Nullable()
+					.WithColumn("name").AsString(255).Nullable()
 					.WithColumn("last_online").AsCustom("TIMESTAMP").WithDefault(SystemMethods.CurrentDateTime).Nullable();
+
+				Execute.Sql("ALTER TABLE zenith_player_settings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_player_storage").Exists())
 			{
 				Create.Table("zenith_player_storage")
 					.WithColumn("steam_id").AsString(32).PrimaryKey()
-					.WithColumn("name").AsString(64).Nullable()
+					.WithColumn("name").AsString(255).Nullable()
 					.WithColumn("last_online").AsCustom("TIMESTAMP").WithDefault(SystemMethods.CurrentDateTime).Nullable();
+
+				Execute.Sql("ALTER TABLE zenith_player_storage CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 		}
 

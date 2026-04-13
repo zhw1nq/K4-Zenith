@@ -26,6 +26,8 @@ namespace Zenith.Migrations
 					.WithColumn("neck_hits").AsInt32().NotNullable().WithDefaultValue(0)
 					.WithColumn("gear_hits").AsInt32().NotNullable().WithDefaultValue(0);
 				Create.PrimaryKey("PK_zenith_weapon_stats").OnTable("zenith_weapon_stats").Columns("steam_id", "weapon");
+
+				Execute.Sql("ALTER TABLE zenith_weapon_stats CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 
 			if (!Schema.Table("zenith_map_stats").Exists())
@@ -73,6 +75,8 @@ namespace Zenith.Migrations
 					.WithColumn("revenge_kill").AsInt32().NotNullable().WithDefaultValue(0)
 					.WithColumn("assist_flash").AsInt32().NotNullable().WithDefaultValue(0);
 				Create.PrimaryKey("PK_zenith_map_stats").OnTable("zenith_map_stats").Columns("steam_id", "map_name");
+
+				Execute.Sql("ALTER TABLE zenith_map_stats CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;");
 			}
 		}
 
