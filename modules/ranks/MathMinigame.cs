@@ -86,12 +86,17 @@ public class MathMinigame
 
                     answer = answer.Trim();
 
-                    // Validate result is within 5 digits (abs value <= 99999)
+                    // Validate result is an integer and within 5 digits (abs value <= 99999)
                     if (double.TryParse(answer, System.Globalization.NumberStyles.Any,
                         System.Globalization.CultureInfo.InvariantCulture, out double resultValue))
                     {
-                        if (Math.Abs(resultValue) <= 99999 && !double.IsInfinity(resultValue) && !double.IsNaN(resultValue))
+                        // Must be integer (no decimals), allow negatives, within 5 digits
+                        if (resultValue == Math.Floor(resultValue) && Math.Abs(resultValue) <= 99999
+                            && !double.IsInfinity(resultValue) && !double.IsNaN(resultValue))
+                        {
+                            answer = ((long)resultValue).ToString();
                             break;
+                        }
                     }
 
                     // Result too large or invalid, retry
@@ -203,15 +208,12 @@ public class MathMinigame
 
         string trimmedMessage = message.Trim();
 
-        // Try to parse both answer and message as numbers for comparison
+        // Compare as integers (exact match)
         bool isCorrect = false;
-        if (double.TryParse(_currentAnswer, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out double expectedValue) &&
-            double.TryParse(trimmedMessage, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out double playerValue))
+        if (long.TryParse(_currentAnswer, out long expectedValue) &&
+            long.TryParse(trimmedMessage, out long playerValue))
         {
-            // Compare with small tolerance for floating point
-            isCorrect = Math.Abs(expectedValue - playerValue) <= 0.01;
+            isCorrect = expectedValue == playerValue;
         }
         else
         {
