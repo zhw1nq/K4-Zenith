@@ -46,9 +46,9 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Minigame", "RewardPoints", "Points reward for correct answer", 100);
         _moduleServices.RegisterModuleConfig("Minigame", "DisplayDuration", "How long to show the math question on center screen (seconds)", 30);
         _moduleServices.RegisterModuleConfig("Minigame", "WinnerDisplayDuration", "How long to show winner announcement (seconds)", 7);
-        _moduleServices.RegisterModuleConfig("Minigame", "MaxDifficulty", "Max number range for operands", 999);
-        _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 3);
-        _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 6);
+        _moduleServices.RegisterModuleConfig("Minigame", "MaxDifficulty", "Max number range for operands", 200);
+        _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 4);
+        _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 8);
         _moduleServices.RegisterModuleConfig("Minigame", "AnswerCommands", "Commands to answer math challenge", new List<string> { "aw" });
 
         // Register Points

@@ -41,7 +41,7 @@ public class MathMinigame
     private const int MaxWrongAttempts = 3;
     private const double CooldownSeconds = 2.0;
 
-    private readonly string[] _operators = ["+", "-", "*"];
+    private readonly string[] _operators = ["+", "-", "*", "/"];
 
     public MathMinigame(Plugin plugin)
     {
@@ -68,23 +68,46 @@ public class MathMinigame
 
     private void StartChallenge()
     {
-        string expression = GenerateExpression();
-
         Task.Run(async () =>
         {
             try
             {
-                string? answer = await EvaluateExpression(expression);
-                if (answer == null)
+                string? expression = null;
+                string? answer = null;
+
+                // Retry up to 10 times to get a result within 5 digits
+                for (int attempt = 0; attempt < 10; attempt++)
                 {
-                    _plugin.Logger.LogWarning("[MathMinigame] Failed to evaluate expression: {Expression}", expression);
+                    expression = GenerateExpression();
+                    answer = await EvaluateExpression(expression);
+
+                    if (answer == null)
+                        continue;
+
+                    answer = answer.Trim();
+
+                    // Validate result is within 5 digits (abs value <= 99999)
+                    if (double.TryParse(answer, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out double resultValue))
+                    {
+                        if (Math.Abs(resultValue) <= 99999 && !double.IsInfinity(resultValue) && !double.IsNaN(resultValue))
+                            break;
+                    }
+
+                    // Result too large or invalid, retry
+                    answer = null;
+                }
+
+                if (expression == null || answer == null)
+                {
+                    _plugin.Logger.LogWarning("[MathMinigame] Failed to generate valid expression after retries");
                     return;
                 }
 
                 Server.NextFrame(() =>
                 {
                     _currentExpression = expression;
-                    _currentAnswer = answer.Trim();
+                    _currentAnswer = answer;
                     _isActive = true;
                     _lastChallengeTime = DateTime.Now;
 
@@ -286,42 +309,31 @@ public class MathMinigame
         {
             if (i > 0)
             {
-                // Pick operator - occasionally use power (^)
-                int opChoice = _random.Next(10);
-                if (opChoice < 2) // 20% chance for power
-                {
-                    parts.Add("^");
-                }
-                else
-                {
-                    parts.Add(_operators[_random.Next(_operators.Length)]);
-                }
+                parts.Add(_operators[_random.Next(_operators.Length)]);
             }
 
-            // Check if next operator is power - use smaller base
             string lastOp = parts.Count >= 2 ? parts[^1] : "";
 
-            if (lastOp == "^")
+            if (lastOp == "/")
             {
-                // Exponent should be small (2-4) to avoid huge numbers
-                parts.Add(_random.Next(2, 5).ToString());
+                // Divisor should be small (2-20) to avoid decimals and keep it solvable
+                parts.Add(_random.Next(2, 21).ToString());
             }
             else
             {
-                // Check if next position might be a power base
-                // Use varied number sizes for interesting expressions
+                // Use smaller numbers for easier mental math
                 int numChoice = _random.Next(10);
-                if (numChoice < 3) // 30% small numbers
+                if (numChoice < 4) // 40% small numbers (1-20)
                 {
-                    parts.Add(_random.Next(2, 30).ToString());
+                    parts.Add(_random.Next(1, 21).ToString());
                 }
-                else if (numChoice < 7) // 40% medium numbers
+                else if (numChoice < 8) // 40% medium numbers (10-99)
                 {
-                    parts.Add(_random.Next(10, Math.Min(maxDifficulty, 500) + 1).ToString());
+                    parts.Add(_random.Next(10, Math.Min(maxDifficulty, 100) + 1).ToString());
                 }
-                else // 30% large numbers
+                else // 20% larger numbers (50-maxDifficulty, capped at 200)
                 {
-                    parts.Add(_random.Next(100, maxDifficulty + 1).ToString());
+                    parts.Add(_random.Next(50, Math.Min(maxDifficulty, 200) + 1).ToString());
                 }
             }
         }
