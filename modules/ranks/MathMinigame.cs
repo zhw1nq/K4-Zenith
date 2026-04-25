@@ -128,8 +128,8 @@ public class MathMinigame
                         try
                         {
                             string localizedHtml = $@"
-                            <font color='#FFD700' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
-                            <font color='#FFFFFF' class='fontSize-l'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression)}</font><br>
+                            <font color='#FFD700' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
+                            <font color='#FFFFFF' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression)}</font><br>
                             <font color='#00FF00' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.hint")}</font>";
 
                             player.PrintToCenter(localizedHtml, displayDuration, ActionPriority.High);
@@ -270,21 +270,32 @@ public class MathMinigame
             _plugin.ModifyPlayerPoints(playerServices, rewardPoints, "k4.events.minigame");
         }
 
-        // Show winner center HTML to all players (this replaces the challenge display)
+        // Show brief result on challenge panel then hide it
         foreach (var p in _plugin.GetValidPlayers())
         {
             try
             {
-                string winnerHtml = $@"
-                <font color='#00FF00' class='fontSize-l'>{_plugin.Localizer.ForPlayer(p.Controller, "k4.minigame.winner.title")}</font><br>
-                <font color='#FFD700' class='fontSize-m'>{player.PlayerName}</font><br>
-                <font color='#FFFFFF' class='fontSize-s'>{_plugin.Localizer.ForPlayer(p.Controller, "k4.minigame.reward", rewardPoints)}</font><br>
+                string resultHtml = $@"
+                <font color='#00FF00' class='fontSize-s'>✓ {player.PlayerName} (+{rewardPoints})</font><br>
                 <font color='#AAAAAA' class='fontSize-s'>{expression} = {answer}</font>";
 
-                p.PrintToCenter(winnerHtml, winnerDisplayDuration, ActionPriority.High);
+                p.PrintToCenter(resultHtml, winnerDisplayDuration, ActionPriority.High);
             }
             catch { }
         }
+
+        // Auto-hide after winnerDisplayDuration
+        _plugin.AddTimer((float)winnerDisplayDuration, () =>
+        {
+            foreach (var p in _plugin.GetValidPlayers())
+            {
+                try
+                {
+                    p.PrintToCenter("", 1, ActionPriority.High);
+                }
+                catch { }
+            }
+        });
 
         // Chat announcement
         _plugin._moduleServices?.PrintForAll(
