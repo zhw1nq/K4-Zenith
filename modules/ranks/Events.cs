@@ -72,21 +72,24 @@ namespace Zenith_Ranks
                                 _roundPointDetails.TryGetValue(player.Controller, out var details) &&
                                 details.Count > 0)
                             {
-                                string expr = "";
-                                for (int i = 0; i < details.Count; i++)
+                                long finalPoints = player.GetStorage<long>("Points", MODULE_ID);
+
+                                // Build colorized expression: {yellow}startPts{green}+X{lightred}-Y...{yellow}={green/red}finalPts
+                                var sb = new System.Text.StringBuilder();
+                                sb.Append($"{{yellow}}{startPoints:N0}");
+
+                                foreach (var d in details)
                                 {
-                                    if (i == 0)
-                                        expr += details[i].ToString();
-                                    else if (details[i] >= 0)
-                                        expr += $"+{details[i]}";
+                                    if (d >= 0)
+                                        sb.Append($"{{green}}+{d}");
                                     else
-                                        expr += details[i].ToString();
+                                        sb.Append($"{{lightred}}{d}");
                                 }
 
-                                long finalPoints = player.GetStorage<long>("Points", MODULE_ID);
-                                string calcKey = points >= 0 ? "k4.phrases.round-summary-calc-gain" : "k4.phrases.round-summary-calc-lose";
-                                string calcMessage = Localizer.ForPlayer(player.Controller, calcKey, $"{startPoints:N0}", expr, $"{finalPoints:N0}");
-                                player.Print(calcMessage);
+                                string resultColor = finalPoints >= startPoints ? "{green}" : "{lightred}";
+                                sb.Append($"{{yellow}}={resultColor}{finalPoints:N0}");
+
+                                player.Print(sb.ToString());
                             }
 
                             string message = points > 0 ? Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-earn", points) : Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-lose", points);

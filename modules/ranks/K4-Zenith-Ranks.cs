@@ -27,15 +27,17 @@ public sealed partial class Plugin : BasePlugin
     private PlayerCapability<IPlayerServices>? _playerServicesCapability;
     private PluginCapability<IModuleServices>? _moduleServicesCapability;
     private DateTime _lastPlaytimeCheck = DateTime.Now;
+    private DateTime _lastRecoveryCheck = DateTime.Now;
     public KitsuneMenu Menu { get; private set; } = null!;
 
     public CCSGameRules? GameRules { get; private set; }
     private IZenithEvents? _zenithEvents;
-    private IModuleServices? _moduleServices;
+    public IModuleServices? _moduleServices;
     private readonly HashSet<CCSPlayerController> _playerSpawned = [];
-    private readonly Dictionary<CCSPlayerController, IPlayerServices> _playerCache = [];
+    public readonly Dictionary<CCSPlayerController, IPlayerServices> _playerCache = [];
     private bool _isGameEnd;
     public IModuleConfigAccessor _coreAccessor = null!;
+    private MathMinigame? _mathMinigame;
 
     private readonly Dictionary<(string Section, string Key), object> _configCache = [];
     private readonly TimeSpan _playerCacheExpiration = TimeSpan.FromSeconds(5);
@@ -59,6 +61,9 @@ public sealed partial class Plugin : BasePlugin
 
         Menu = new KitsuneMenu(this);
         _coreAccessor = _configAccessor;
+
+        // Initialize Math Minigame
+        _mathMinigame = new MathMinigame(this);
 
         if (hotReload)
         {
@@ -85,13 +90,12 @@ public sealed partial class Plugin : BasePlugin
             {
                 CleanupCache();
 
+                // Playtime points
                 int interval = GetCachedConfigValue<int>("Points", "PlaytimeInterval");
-                if (interval <= 0) return;
-
                 int minPlayers = GetCachedConfigValue<int>("Settings", "MinPlayers");
-                if (_playerCache.Count < minPlayers) return;
 
-                if ((DateTime.Now - _lastPlaytimeCheck).TotalMinutes >= interval)
+                if (interval > 0 && _playerCache.Count >= minPlayers
+                    && (DateTime.Now - _lastPlaytimeCheck).TotalMinutes >= interval)
                 {
                     int playtimePoints = GetCachedConfigValue<int>("Points", "PlaytimePoints");
                     foreach (var player in GetValidPlayers())
@@ -100,10 +104,45 @@ public sealed partial class Plugin : BasePlugin
                     }
                     _lastPlaytimeCheck = DateTime.Now;
                 }
+
+                // Negative points recovery
+                if (GetCachedConfigValue<bool>("Settings", "NegativeRecoveryEnabled"))
+                {
+                    int recoveryInterval = GetCachedConfigValue<int>("Settings", "NegativeRecoveryInterval");
+                    if (recoveryInterval > 0 && (DateTime.Now - _lastRecoveryCheck).TotalMinutes >= recoveryInterval)
+                    {
+                        int recoveryAmount = GetCachedConfigValue<int>("Settings", "NegativeRecoveryAmount");
+                        foreach (var player in GetValidPlayers())
+                        {
+                            long currentPoints = player.GetStorage<long>("Points", MODULE_ID);
+                            if (currentPoints < 0)
+                            {
+                                long newPoints = Math.Min(0, currentPoints + recoveryAmount);
+                                int delta = (int)(newPoints - currentPoints);
+                                if (delta > 0)
+                                    ModifyPlayerPoints(player, delta, "k4.events.negativerecovery");
+                            }
+                        }
+                        _lastRecoveryCheck = DateTime.Now;
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during background tasks: {ex.Message}");
+            }
+        }, TimerFlags.REPEAT);
+
+        // Math Minigame timer
+        AddTimer(10.0f, () =>
+        {
+            try
+            {
+                _mathMinigame?.CheckAndStartChallenge();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in math minigame: {ex.Message}");
             }
         }, TimerFlags.REPEAT);
 
@@ -200,6 +239,7 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices!.RegisterModuleCommands(["zsetpoint", "zsetpoints"], "Sets Zenith Rank point for the player.", OnSetPoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@zenith/point-admin");
         _moduleServices!.RegisterModuleCommands(["zresetpoint", "zresetpoints"], "Resets Zenith storages for the player.", OnResetPoints, CommandUsage.CLIENT_AND_SERVER, 1, "<target>", "@zenith/point-admin");
         _moduleServices!.RegisterModuleCommands(["ranks"], "Shows the rank informations.", OnRanksCommand, CommandUsage.CLIENT_ONLY);
+        _moduleServices!.RegisterModuleCommands(_configAccessor.GetValue<List<string>>("Minigame", "AnswerCommands"), "Answer math minigame challenge.", OnAnswerCommand, CommandUsage.CLIENT_ONLY, 1, "<answer>");
     }
 
     private void SetupZenithEvents()
@@ -218,6 +258,8 @@ public sealed partial class Plugin : BasePlugin
                     _roundPoints.Clear();
                 }
             };
+
+            // Chat messages no longer used for minigame answers (use !aw command instead)
         }
         else
         {
@@ -242,6 +284,17 @@ public sealed partial class Plugin : BasePlugin
 
         _playerCache[player] = handler;
         _playerSpawned.Add(player);
+
+        // Sync rank from current points to fix Unranked bug for new players with starting points
+        var playerData = GetOrUpdatePlayerRankInfo(handler);
+        long currentPoints = handler.GetStorage<long>("Points", MODULE_ID);
+        var (determinedRank, _) = DetermineRanks(currentPoints);
+        string correctRankName = determinedRank?.Name ?? "k4.phrases.rank.none";
+        string storedRank = handler.GetStorage<string>("Rank", MODULE_ID) ?? "k4.phrases.rank.none";
+        if (storedRank != correctRankName)
+        {
+            handler.SetStorage("Rank", correctRankName, false, MODULE_ID);
+        }
     }
 
     private void OnZenithPlayerUnloaded(CCSPlayerController player)

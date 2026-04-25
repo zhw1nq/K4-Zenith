@@ -47,6 +47,12 @@ public class Plugin : BasePlugin
     private const string SKILLGROUP_BASE = "202601";
     private const string MODULE_FULL_ID = "K4-Zenith-CustomTags";
 
+    // Bottom 100 ranking cache: SteamID -> (Placement, CacheTime) for most negative points
+    private readonly ConcurrentDictionary<ulong, (int Placement, DateTime CacheTime)> _bottom100Cache = new();
+    private DateTime _bottom100CacheTriggered = DateTime.MinValue;
+    private const int BOTTOM100_LIMIT = 101;
+    private const string NEGATIVE_SKILLGROUP_BASE = "202604";
+
     public KitsuneMenu Menu { get; private set; } = null!;
     public IModuleConfigAccessor _coreAccessor = null!;
 
@@ -71,6 +77,14 @@ public class Plugin : BasePlugin
             }
 
             Logger.LogInformation("Precached {Count} custom skillgroup icons", TOP100_LIMIT);
+
+            // Precache Bottom 101 skillgroups (2026040-202604100)
+            for (int i = 0; i < BOTTOM100_LIMIT; i++)
+            {
+                manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{NEGATIVE_SKILLGROUP_BASE}{i}.vsvg");
+            }
+
+            Logger.LogInformation("Precached {Count} negative skillgroup icons", BOTTOM100_LIMIT);
         });
 
         // Register OnTick for scoreboard skillgroup updates
@@ -79,7 +93,11 @@ public class Plugin : BasePlugin
         // Register OnMapStart to refresh cache on map change
         RegisterListener<Listeners.OnMapStart>(mapName =>
         {
-            AddTimer(3.0f, () => CacheTop100(force: true));
+            AddTimer(3.0f, () =>
+            {
+                CacheTop100(force: true);
+                CacheBottom100(force: true);
+            });
         });
     }
 
@@ -153,10 +171,18 @@ public class Plugin : BasePlugin
         }
 
         // Initial cache call after 3 seconds (allows DB connection to be ready)
-        AddTimer(3.0f, () => CacheTop100());
+        AddTimer(3.0f, () =>
+        {
+            CacheTop100();
+            CacheBottom100();
+        });
 
         // Start Top100 cache timer (every 30 seconds for more responsive updates)
-        AddTimer(30.0f, () => CacheTop100(), TimerFlags.REPEAT);
+        AddTimer(30.0f, () =>
+        {
+            CacheTop100();
+            CacheBottom100();
+        }, TimerFlags.REPEAT);
 
         Logger.LogInformation("Zenith {0} module successfully registered.", MODULE_ID);
     }
@@ -635,6 +661,13 @@ public class Plugin : BasePlugin
             Server.PrecacheModel(path);
         }
 
+        // Precache Bottom 0-100 skillgroups
+        for (int i = 0; i < BOTTOM100_LIMIT; i++)
+        {
+            string bottomPath = $"panorama/images/icons/skillgroups/skillgroup{NEGATIVE_SKILLGROUP_BASE}{i}.vsvg";
+            Server.PrecacheModel(bottomPath);
+        }
+
         // Precache additional skillgroups from predefined_tags.json
         _predefinedConfigs ??= GetPredefinedTagConfigs();
         if (_predefinedConfigs != null)
@@ -726,6 +759,74 @@ public class Plugin : BasePlugin
         public long Points { get; set; }
     }
 
+    private void CacheBottom100(bool force = false)
+    {
+        // Prevent too frequent updates (unless forced)
+        if (!force && (DateTime.UtcNow - _bottom100CacheTriggered).TotalSeconds < 5)
+            return;
+
+        _bottom100CacheTriggered = DateTime.UtcNow;
+
+        string? connectionString = null;
+        try
+        {
+            connectionString = _moduleServices?.GetConnectionString();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            Logger.LogWarning("[Bottom100Cache] No connection string available");
+            return;
+        }
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                using var connection = new MySqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                // Query Bottom 100 players (most negative points) from database
+                const string query = @"
+                    SELECT 
+                        p.steam_id as SteamId,
+                        CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) as Points
+                    FROM zenith_player_storage p
+                    WHERE JSON_VALID(p.`K4-Zenith-Ranks.storage`) = 1
+                    AND JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
+                    AND CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) < 0
+                    ORDER BY Points ASC
+                    LIMIT 101";
+
+                var results = await connection.QueryAsync<TopPlayerResult>(query);
+                var bottomPlayers = results.ToList();
+
+                // Clear and rebuild cache
+                _bottom100Cache.Clear();
+                int position = 0;
+
+                foreach (var player in bottomPlayers)
+                {
+                    if (!string.IsNullOrEmpty(player.SteamId) && ulong.TryParse(player.SteamId, out ulong steamId))
+                    {
+                        _bottom100Cache[steamId] = (position, DateTime.UtcNow);
+                        position++;
+                    }
+                }
+
+                Logger.LogInformation("[Bottom100Cache] Cached {Count} players with negative points", bottomPlayers.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("[Bottom100Cache] Failed to cache Bottom 100: {Error}", ex.Message);
+            }
+        });
+    }
+
     private void UpdateSkillgroupsOnScoreboard()
     {
         foreach (var kvp in _playerCache)
@@ -796,6 +897,12 @@ public class Plugin : BasePlugin
             }
         }
 
+        // Check if player is in Bottom 100 (most negative points) - overrides if no skillgroup set yet
+        if (string.IsNullOrEmpty(skillgroupId) && _bottom100Cache.TryGetValue(player.SteamID, out var bottomEntry))
+        {
+            skillgroupId = $"{NEGATIVE_SKILLGROUP_BASE}{bottomEntry.Placement}";
+        }
+
         // Apply skillgroup to scoreboard
         if (!string.IsNullOrEmpty(skillgroupId) && int.TryParse(skillgroupId, out int skillgroupInt))
         {
@@ -836,7 +943,11 @@ public class Plugin : BasePlugin
         ApplyTagConfig(player);
 
         // Trigger cache refresh when a new player joins (with delay to allow their data to be ready)
-        AddTimer(2.0f, () => CacheTop100(force: true));
+        AddTimer(2.0f, () =>
+        {
+            CacheTop100(force: true);
+            CacheBottom100(force: true);
+        });
     }
 
     private void OnZenithPlayerUnloaded(CCSPlayerController player)

@@ -86,5 +86,19 @@
   "k4.ranks.info.next": "Next Rank:",
   "k4.ranks.info.pointstonext": "Points to Next Rank:",
 
-  "settings.ShowRankChanges": "Show Rank Changes"
+  "settings.ShowRankChanges": "Show Rank Changes",
+
+  "k4.minigame.challenge.title": "MATH CHALLENGE",
+  "k4.minigame.challenge.question": "{0} = ?",
+  "k4.minigame.challenge.hint": "Type !aw <answer> in chat! Wrong answer = -points",
+  "k4.minigame.chat.announce": "{gold}MATH CHALLENGE: {silver}Solve {lime}{0} {silver}= ? {gold}Type {lime}!aw <answer>{gold} in chat! Wrong answer = -points",
+  "k4.minigame.winner.title": "CORRECT!",
+  "k4.minigame.winner.chat": "{gold} {green}{0} {silver}answered correctly! {lime}+{1} points {silver}({2} = {3})",
+  "k4.minigame.reward": "+{0} points",
+  "k4.minigame.expired": "{silver}Time's up! No one answered correctly.",
+  "k4.minigame.wrong": "{red}Wrong answer! {silver}-{0} points",
+  "k4.minigame.usage": "{silver}Usage: {lime}!aw <answer>",
+  "k4.events.minigame": "math minigame",
+  "k4.events.minigame.wrong": "wrong minigame answer",
+  "k4.events.negativerecovery": "negative points recovery"
 }

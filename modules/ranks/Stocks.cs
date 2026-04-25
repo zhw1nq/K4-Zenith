@@ -49,7 +49,8 @@ public sealed partial class Plugin : BasePlugin
         }
 
         long currentPoints = player.GetStorage<long>("Points", MODULE_ID);
-        long newPoints = Math.Max(0, currentPoints + points);
+        bool allowNegative = GetCachedConfigValue<bool>("Settings", "AllowNegativePoints");
+        long newPoints = allowNegative ? currentPoints + points : Math.Max(0, currentPoints + points);
 
         if (currentPoints == newPoints)
             return;

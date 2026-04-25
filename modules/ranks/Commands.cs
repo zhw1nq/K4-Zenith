@@ -158,7 +158,7 @@ public sealed partial class Plugin : BasePlugin
                     break;
             }
 
-            if (points < 0)
+            if (!_configAccessor.GetValue<bool>("Settings", "AllowNegativePoints") && points < 0)
                 points = 0;
 
             string rank = DetermineRanks(points).CurrentRank?.Name ?? "k4.phrases.rank.none";
@@ -311,5 +311,23 @@ public sealed partial class Plugin : BasePlugin
             },
             requireAmount: false
         );
+    }
+
+    public void OnAnswerCommand(CCSPlayerController? player, CommandInfo info)
+    {
+        if (player == null) return;
+
+        if (_mathMinigame == null)
+            return;
+
+        // Collect all args as the answer (in case answer has spaces, though unlikely for numbers)
+        string answer = info.GetArg(1);
+        if (string.IsNullOrWhiteSpace(answer))
+        {
+            _moduleServices?.PrintForPlayer(player, Localizer.ForPlayer(player, "k4.minigame.usage"));
+            return;
+        }
+
+        _mathMinigame.TryAnswer(player, answer);
     }
 }

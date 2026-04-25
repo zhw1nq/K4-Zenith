@@ -18,139 +18,163 @@ public sealed partial class Plugin : BasePlugin
 
         string defaultRanksContent = @"[
     {
+        ""Name"": ""The VuAVu"",
+        ""Image"": """",
+        ""Point"": -999999999,
+        ""ChatColor"": ""darkred"",
+        ""HexColor"": ""#4B0000""
+    },
+    {
+        ""Name"": ""The Mici"",
+        ""Image"": """",
+        ""Point"": -6000,
+        ""ChatColor"": ""darkred"",
+        ""HexColor"": ""#6B0000""
+    },
+    {
+        ""Name"": ""The 36"",
+        ""Image"": """",
+        ""Point"": -3600,
+        ""ChatColor"": ""red"",
+        ""HexColor"": ""#8B0000""
+    },
+    {
+        ""Name"": ""The 18"",
+        ""Image"": """",
+        ""Point"": -1800,
+        ""ChatColor"": ""red"",
+        ""HexColor"": ""#AA0000""
+    },
+    {
+        ""Name"": ""The Ghost"",
+        ""Image"": """",
+        ""Point"": -1000,
+        ""ChatColor"": ""lightred"",
+        ""HexColor"": ""#CC0000""
+    },
+    {
         ""Name"": ""Silver I"",
-        ""Image"": """", // Image URL for the rank. This can be used for web integrations such as GameCMS
-        ""Point"": 0, // From this amount of experience, the player is Silver I, if its 0, this will be the default rank
-        ""ChatColor"": ""grey"", // Color code for the rank. Find color names here: https://github.com/roflmuffin/CounterStrikeSharp/blob/main/managed/CounterStrikeSharp.API/Modules/Utils/ChatColors.cs
-        ""HexColor"": ""#C0C0C0"", // Hexadecimal color code for the rank
-        ""Permissions"": [ // You can add permissions to the rank. If you don't want to add any, remove this array
-            {
-                ""DisplayName"": ""Super Permission"", // This is the name of the permission. Will be displayed in the menu of ranks to let people know the benefits of a rank
-                ""PermissionName"": ""permission1"" // This is the permission name. You can assign 3rd party permissions here
-            },
-            {
-                ""DisplayName"": ""Legendary Permission"",
-                ""PermissionName"": ""permission2""
-            }
-            // You can add as many as you want
-        ]
+        ""Image"": """",
+        ""Point"": 0,
+        ""ChatColor"": ""grey"",
+        ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Silver II"",
         ""Image"": """",
-        ""Point"": 5000,
+        ""Point"": 500,
         ""ChatColor"": ""grey"",
         ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Silver III"",
         ""Image"": """",
-        ""Point"": 10000,
+        ""Point"": 1000,
         ""ChatColor"": ""grey"",
         ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Silver IV"",
         ""Image"": """",
-        ""Point"": 15000,
+        ""Point"": 1500,
         ""ChatColor"": ""grey"",
         ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Silver Elite"",
         ""Image"": """",
-        ""Point"": 20000,
+        ""Point"": 2000,
         ""ChatColor"": ""grey"",
         ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Silver Elite Master"",
         ""Image"": """",
-        ""Point"": 25000,
+        ""Point"": 2700,
         ""ChatColor"": ""grey"",
         ""HexColor"": ""#C0C0C0""
     },
     {
         ""Name"": ""Gold Nova I"",
         ""Image"": """",
-        ""Point"": 30000,
+        ""Point"": 3200,
         ""ChatColor"": ""gold"",
         ""HexColor"": ""#FFD700""
     },
     {
         ""Name"": ""Gold Nova II"",
         ""Image"": """",
-        ""Point"": 40000,
+        ""Point"": 4300,
         ""ChatColor"": ""gold"",
         ""HexColor"": ""#FFD700""
     },
     {
         ""Name"": ""Gold Nova III"",
         ""Image"": """",
-        ""Point"": 50000,
+        ""Point"": 5400,
         ""ChatColor"": ""gold"",
         ""HexColor"": ""#FFD700""
     },
     {
         ""Name"": ""Gold Nova Master"",
         ""Image"": """",
-        ""Point"": 60000,
+        ""Point"": 6400,
         ""ChatColor"": ""gold"",
         ""HexColor"": ""#FFD700""
     },
     {
         ""Name"": ""Master Guardian I"",
         ""Image"": """",
-        ""Point"": 75000,
+        ""Point"": 8000,
         ""ChatColor"": ""green"",
         ""HexColor"": ""#00FF00""
     },
     {
         ""Name"": ""Master Guardian II"",
         ""Image"": """",
-        ""Point"": 90000,
+        ""Point"": 9600,
         ""ChatColor"": ""green"",
         ""HexColor"": ""#00FF00""
     },
     {
         ""Name"": ""Master Guardian Elite"",
         ""Image"": """",
-        ""Point"": 110000,
+        ""Point"": 11800,
         ""ChatColor"": ""green"",
         ""HexColor"": ""#00FF00""
     },
     {
         ""Name"": ""Distinguished Master Guardian"",
         ""Image"": """",
-        ""Point"": 130000,
+        ""Point"": 13900,
         ""ChatColor"": ""green"",
         ""HexColor"": ""#00FF00""
     },
     {
         ""Name"": ""Legendary Eagle"",
         ""Image"": """",
-        ""Point"": 160000,
+        ""Point"": 17100,
         ""ChatColor"": ""blue"",
         ""HexColor"": ""#0000FF""
     },
     {
         ""Name"": ""Legendary Eagle Master"",
         ""Image"": """",
-        ""Point"": 190000,
+        ""Point"": 20400,
         ""ChatColor"": ""blue"",
         ""HexColor"": ""#0000FF""
     },
     {
         ""Name"": ""Supreme Master First Class"",
         ""Image"": """",
-        ""Point"": 230000,
+        ""Point"": 24600,
         ""ChatColor"": ""purple"",
         ""HexColor"": ""#800080""
     },
     {
         ""Name"": ""Global Elite"",
         ""Image"": """",
-        ""Point"": 280000,
+        ""Point"": 30000,
         ""ChatColor"": ""lightred"",
         ""HexColor"": ""#FF4040""
     }
