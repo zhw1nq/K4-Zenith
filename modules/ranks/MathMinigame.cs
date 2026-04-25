@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using System.Net;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
+using CounterStrikeSharp.API.Modules.Utils;
 using Microsoft.Extensions.Logging;
 using ZenithAPI;
 
@@ -11,7 +13,10 @@ public enum AnswerResult
 {
     NotActive,
     Correct,
-    Wrong
+    Wrong,
+    Cooldown,
+    MaxAttempts,
+    Spectator
 }
 
 public class MathMinigame
@@ -26,6 +31,15 @@ public class MathMinigame
     private string? _currentAnswer;
     private bool _isActive;
     private DateTime _lastChallengeTime = DateTime.MinValue;
+
+    // Per-player tracking: wrong attempt count
+    private readonly ConcurrentDictionary<ulong, int> _playerWrongAttempts = new();
+    // Per-player tracking: cooldown until time
+    private readonly ConcurrentDictionary<ulong, DateTime> _playerCooldowns = new();
+
+    private static readonly int[] WrongPenalties = [10, 25, 50];
+    private const int MaxWrongAttempts = 3;
+    private const double CooldownSeconds = 2.0;
 
     private readonly string[] _operators = ["+", "-", "*"];
 
@@ -74,21 +88,20 @@ public class MathMinigame
                     _isActive = true;
                     _lastChallengeTime = DateTime.Now;
 
+                    // Reset per-player tracking
+                    _playerWrongAttempts.Clear();
+                    _playerCooldowns.Clear();
+
                     int displayDuration = _plugin._configAccessor.GetValue<int>("Minigame", "DisplayDuration");
 
                     // Show center HTML to all players
-                    string htmlMessage = $@"
-                    <font color='#FFD700' class='fontSize-l'>{_plugin.Localizer.ForPlayer(null, "k4.minigame.challenge.title")}</font><br>
-                    <font color='#FFFFFF' class='fontSize-m'>{_plugin.Localizer.ForPlayer(null, "k4.minigame.challenge.question", _currentExpression)}</font><br>
-                    <font color='#00FF00' class='fontSize-s'>{_plugin.Localizer.ForPlayer(null, "k4.minigame.challenge.hint")}</font>";
-
                     foreach (var player in _plugin.GetValidPlayers())
                     {
                         try
                         {
                             string localizedHtml = $@"
-                            <font color='#FFD700' class='fontSize-l'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
-                            <font color='#FFFFFF' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression)}</font><br>
+                            <font color='#FFD700' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
+                            <font color='#FFFFFF' class='fontSize-l'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression)}</font><br>
                             <font color='#00FF00' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.hint")}</font>";
 
                             player.PrintToCenter(localizedHtml, displayDuration, ActionPriority.High);
@@ -109,6 +122,16 @@ public class MathMinigame
                             _currentExpression = null;
                             _currentAnswer = null;
 
+                            // Clear center HTML for all players
+                            foreach (var p in _plugin.GetValidPlayers())
+                            {
+                                try
+                                {
+                                    p.PrintToCenter("", 1, ActionPriority.High);
+                                }
+                                catch { }
+                            }
+
                             _plugin._moduleServices?.PrintForAll(
                                 _plugin.Localizer.ForPlayer(null, "k4.minigame.expired"));
                         }
@@ -126,6 +149,34 @@ public class MathMinigame
     {
         if (!_isActive || _currentAnswer == null)
             return AnswerResult.NotActive;
+
+        // Block spectators from answering
+        if (player.Team <= CsTeam.Spectator)
+        {
+            _plugin._moduleServices?.PrintForPlayer(player,
+                _plugin.Localizer.ForPlayer(player, "k4.minigame.spectator"));
+            return AnswerResult.Spectator;
+        }
+
+        ulong steamId = player.SteamID;
+
+        // Check if player exceeded max attempts
+        int currentAttempts = _playerWrongAttempts.GetValueOrDefault(steamId, 0);
+        if (currentAttempts >= MaxWrongAttempts)
+        {
+            _plugin._moduleServices?.PrintForPlayer(player,
+                _plugin.Localizer.ForPlayer(player, "k4.minigame.maxattempts"));
+            return AnswerResult.MaxAttempts;
+        }
+
+        // Check cooldown
+        if (_playerCooldowns.TryGetValue(steamId, out DateTime cooldownUntil) && DateTime.Now < cooldownUntil)
+        {
+            double remaining = (cooldownUntil - DateTime.Now).TotalSeconds;
+            _plugin._moduleServices?.PrintForPlayer(player,
+                _plugin.Localizer.ForPlayer(player, "k4.minigame.cooldown", $"{remaining:F1}"));
+            return AnswerResult.Cooldown;
+        }
 
         string trimmedMessage = message.Trim();
 
@@ -147,16 +198,33 @@ public class MathMinigame
 
         if (!isCorrect)
         {
-            // Wrong answer - deduct penalty points
-            int penaltyPoints = _plugin._configAccessor.GetValue<int>("Minigame", "WrongAnswerPenalty");
-            if (penaltyPoints > 0 && _plugin._playerCache.TryGetValue(player, out var penaltyPlayer))
+            // Increment wrong attempts
+            int attemptIndex = currentAttempts; // 0-based index
+            _playerWrongAttempts[steamId] = currentAttempts + 1;
+
+            // Set cooldown
+            _playerCooldowns[steamId] = DateTime.Now.AddSeconds(CooldownSeconds);
+
+            // Get penalty based on attempt number (escalating)
+            int penaltyPoints = WrongPenalties[Math.Min(attemptIndex, WrongPenalties.Length - 1)];
+            int remainingAttempts = MaxWrongAttempts - (currentAttempts + 1);
+
+            if (_plugin._playerCache.TryGetValue(player, out var penaltyPlayer))
             {
                 _plugin.ModifyPlayerPoints(penaltyPlayer, -penaltyPoints, "k4.events.minigame.wrong");
             }
 
             // Notify the player
-            _plugin._moduleServices?.PrintForPlayer(player,
-                _plugin.Localizer.ForPlayer(player, "k4.minigame.wrong", penaltyPoints));
+            if (remainingAttempts > 0)
+            {
+                _plugin._moduleServices?.PrintForPlayer(player,
+                    _plugin.Localizer.ForPlayer(player, "k4.minigame.wrong", penaltyPoints, remainingAttempts));
+            }
+            else
+            {
+                _plugin._moduleServices?.PrintForPlayer(player,
+                    _plugin.Localizer.ForPlayer(player, "k4.minigame.wrong.final", penaltyPoints));
+            }
 
             return AnswerResult.Wrong;
         }
@@ -177,7 +245,7 @@ public class MathMinigame
             _plugin.ModifyPlayerPoints(playerServices, rewardPoints, "k4.events.minigame");
         }
 
-        // Show winner center HTML to all players
+        // Show winner center HTML to all players (this replaces the challenge display)
         foreach (var p in _plugin.GetValidPlayers())
         {
             try

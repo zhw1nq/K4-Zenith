@@ -49,7 +49,6 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Minigame", "MaxDifficulty", "Max number range for operands", 999);
         _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 3);
         _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 6);
-        _moduleServices.RegisterModuleConfig("Minigame", "WrongAnswerPenalty", "Points deducted for wrong answer", 50);
         _moduleServices.RegisterModuleConfig("Minigame", "AnswerCommands", "Commands to answer math challenge", new List<string> { "aw" });
 
         // Register Points
