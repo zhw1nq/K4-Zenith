@@ -128,7 +128,7 @@ public class TopListsPlugin : BasePlugin
 			return;
 
 		var onlinePlayers = Utilities.GetPlayers()
-			.Where(p => p != null && p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.PlayerConnected)
+			.Where(p => p != null && p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.Connected)
 			.ToList();
 
 		if (onlinePlayers.Count == 0)
@@ -174,7 +174,7 @@ public class TopListsPlugin : BasePlugin
 
 				foreach (var (SteamId, Placement) in results)
 				{
-					var foundPlayer = onlinePlayers.FirstOrDefault(p => p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.PlayerConnected && p.SteamID.ToString() == SteamId);
+					var foundPlayer = onlinePlayers.FirstOrDefault(p => p.IsValid && !p.IsBot && !p.IsHLTV && p.Connected == PlayerConnectedState.Connected && p.SteamID.ToString() == SteamId);
 
 					if (foundPlayer != null)
 					{

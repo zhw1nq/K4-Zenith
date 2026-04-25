@@ -6,6 +6,8 @@
   "k4.phrases.assist-extended": "pomoc w zabiciu {0} ({1})",
   "k4.phrases.round-summary-earn": "{silver}Zarobiłeś {green}{0} punktów{silver} w tej rundzie.",
   "k4.phrases.round-summary-lose": "{silver}Straciłeś {red}{0} punktów{silver} w tej rundzie.",
+  "k4.phrases.round-summary-calc-gain": "{silver}[{0}] {green}+ {silver}[{1}] = [{2}]",
+  "k4.phrases.round-summary-calc-lose": "{silver}[{0}] {red}- {silver}[{1}] = [{2}]",
   "k4.phrases.points_disabled": "{silver}Punkty są wyłączone. Wymagana minimalna liczba graczy: {gold}{0} {silver}.",
   "k4.phrases.rankup": "Gratulacje!",
   "k4.phrases.rankdown": "Ranga obniżona",
@@ -26,6 +28,7 @@
   "k4.events.roundend": "za zakończenie rundy",
 
   "k4.events.suicide": "za popełnienie samobójstwa",
+  "k4.events.bombexplosiondeath": "śmierć od wybuchu bomby",
   "k4.events.kill": "za zabicie wroga",
   "k4.events.teamkill": "za zabicie sojusznika",
   "k4.events.headshot": "za zabicie headshotem",

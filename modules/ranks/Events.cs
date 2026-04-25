@@ -68,6 +68,27 @@ namespace Zenith_Ranks
                     {
                         if (player.GetSetting<bool>("ShowRankChanges", MODULE_ID) && _roundPoints.TryGetValue(player.Controller, out int points))
                         {
+                            if (_roundStartPoints.TryGetValue(player.Controller, out long startPoints) &&
+                                _roundPointDetails.TryGetValue(player.Controller, out var details) &&
+                                details.Count > 0)
+                            {
+                                string expr = "";
+                                for (int i = 0; i < details.Count; i++)
+                                {
+                                    if (i == 0)
+                                        expr += details[i].ToString();
+                                    else if (details[i] >= 0)
+                                        expr += $"+{details[i]}";
+                                    else
+                                        expr += details[i].ToString();
+                                }
+
+                                long finalPoints = player.GetStorage<long>("Points", MODULE_ID);
+                                string calcKey = points >= 0 ? "k4.phrases.round-summary-calc-gain" : "k4.phrases.round-summary-calc-lose";
+                                string calcMessage = Localizer.ForPlayer(player.Controller, calcKey, $"{startPoints:N0}", expr, $"{finalPoints:N0}");
+                                player.Print(calcMessage);
+                            }
+
                             string message = points > 0 ? Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-earn", points) : Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-lose", points);
                             player.Print(message);
                         }
@@ -76,6 +97,8 @@ namespace Zenith_Ranks
             }
 
             _roundPoints.Clear();
+            _roundPointDetails.Clear();
+            _roundStartPoints.Clear();
             return HookResult.Continue;
         }
 
@@ -311,7 +334,12 @@ namespace Zenith_Ranks
                 if (deathEvent.Attacker == null || deathEvent.Attacker.SteamID == victim.Controller.SteamID)
                 {
                     if (!_plugin._isGameEnd)
-                        _plugin.ModifyPlayerPoints(victim, _plugin._configAccessor.GetValue<int>("Points", "Suicide"), "k4.events.suicide");
+                    {
+                        bool isBombDeath = deathEvent.Weapon.Equals("planted_c4", StringComparison.OrdinalIgnoreCase);
+                        string pointsKey = isBombDeath ? "BombExplosionDeath" : "Suicide";
+                        string eventKey = isBombDeath ? "k4.events.bombexplosiondeath" : "k4.events.suicide";
+                        _plugin.ModifyPlayerPoints(victim, _plugin._configAccessor.GetValue<int>("Points", pointsKey), eventKey);
+                    }
                 }
                 else
                 {

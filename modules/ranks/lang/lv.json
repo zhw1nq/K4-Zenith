@@ -6,6 +6,8 @@
   "k4.phrases.assist-extended": "palīdzot nogalināt {0} ({1})",
   "k4.phrases.round-summary-earn": "{silver}Šajā raundā nopelnīji {green}{0} punktus{silver}.",
   "k4.phrases.round-summary-lose": "{silver}Šajā raundā zaudēji {red}{0} punktus{silver}.",
+  "k4.phrases.round-summary-calc-gain": "{silver}[{0}] {green}+ {silver}[{1}] = [{2}]",
+  "k4.phrases.round-summary-calc-lose": "{silver}[{0}] {red}- {silver}[{1}] = [{2}]",
   "k4.phrases.points_disabled": "{silver}Punkti ir atspējoti. Nepieciešami vismaz {gold}{0} {silver}spēlētāji.",
   "k4.phrases.rankup": "Apsveicam!",
   "k4.phrases.rankdown": "Ranks samazināts",
@@ -43,6 +45,7 @@
 "k4.events.roundend": "raunda beigām",
 
 "k4.events.suicide": "pašnāvību",
+"k4.events.bombexplosiondeath": "nāve no bumbas sprādziena",
 "k4.events.kill": "enemy killu",
 "k4.events.teamkill": "teamkillu",
 "k4.events.headshot": "headshot killu",

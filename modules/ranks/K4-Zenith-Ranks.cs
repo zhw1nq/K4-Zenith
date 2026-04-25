@@ -58,7 +58,7 @@ public sealed partial class Plugin : BasePlugin
         SetupGameRules(hotReload);
 
         Menu = new KitsuneMenu(this);
-        _coreAccessor = _moduleServices!.GetModuleConfigAccessor();
+        _coreAccessor = _configAccessor;
 
         if (hotReload)
         {
@@ -87,6 +87,9 @@ public sealed partial class Plugin : BasePlugin
 
                 int interval = GetCachedConfigValue<int>("Points", "PlaytimeInterval");
                 if (interval <= 0) return;
+
+                int minPlayers = GetCachedConfigValue<int>("Settings", "MinPlayers");
+                if (_playerCache.Count < minPlayers) return;
 
                 if ((DateTime.Now - _lastPlaytimeCheck).TotalMinutes >= interval)
                 {

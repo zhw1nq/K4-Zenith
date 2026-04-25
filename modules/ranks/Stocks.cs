@@ -10,6 +10,8 @@ public sealed partial class Plugin : BasePlugin
 {
     private readonly Dictionary<ulong, PlayerRankInfo> _playerRankCache = [];
     private readonly Dictionary<CCSPlayerController, int> _roundPoints = [];
+    private readonly Dictionary<CCSPlayerController, List<int>> _roundPointDetails = [];
+    private readonly Dictionary<CCSPlayerController, long> _roundStartPoints = [];
 
     public IEnumerable<IPlayerServices> GetValidPlayers()
     {
@@ -29,6 +31,8 @@ public sealed partial class Plugin : BasePlugin
     {
         if (points == 0) return;
 
+        var svipFlags = GetCachedConfigValue<List<string>>("Settings", "SVIPFlags");
+        var svipMultiplier = (decimal)GetCachedConfigValue<double>("Settings", "SvipMultiplier");
         var vipFlags = GetCachedConfigValue<List<string>>("Settings", "VIPFlags");
         var vipMultiplier = (decimal)GetCachedConfigValue<double>("Settings", "VipMultiplier");
         bool scoreboardSync = GetCachedConfigValue<bool>("Settings", "ScoreboardScoreSync");
@@ -36,9 +40,12 @@ public sealed partial class Plugin : BasePlugin
 
         var playerData = GetOrUpdatePlayerRankInfo(player);
 
-        if (points > 0 && vipFlags.Any(f => AdminManager.PlayerHasPermissions(player.Controller, f)))
+        if (points > 0)
         {
-            points = (int)(points * vipMultiplier);
+            if (svipFlags.Any(f => AdminManager.PlayerHasPermissions(player.Controller, f)))
+                points = (int)(points * svipMultiplier);
+            else if (vipFlags.Any(f => AdminManager.PlayerHasPermissions(player.Controller, f)))
+                points = (int)(points * vipMultiplier);
         }
 
         long currentPoints = player.GetStorage<long>("Points", MODULE_ID);
@@ -59,9 +66,19 @@ public sealed partial class Plugin : BasePlugin
 
         if (showSummaries || !player.GetSetting<bool>("ShowRankChanges", MODULE_ID))
         {
+            if (!_roundStartPoints.ContainsKey(player.Controller))
+                _roundStartPoints[player.Controller] = currentPoints;
+
             _roundPoints[player.Controller] = _roundPoints.TryGetValue(player.Controller, out int existingPoints)
                 ? existingPoints + points
                 : points;
+
+            if (!_roundPointDetails.TryGetValue(player.Controller, out var details))
+            {
+                details = [];
+                _roundPointDetails[player.Controller] = details;
+            }
+            details.Add(points);
         }
         else
         {

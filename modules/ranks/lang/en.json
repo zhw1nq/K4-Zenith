@@ -6,6 +6,8 @@
   "k4.phrases.assist-extended": "assisting to kill {0} ({1})",
   "k4.phrases.round-summary-earn": "{silver}You earned {green}{0} points{silver} this round.",
   "k4.phrases.round-summary-lose": "{silver}You lost {red}{0} points{silver} this round.",
+  "k4.phrases.round-summary-calc-gain": "{silver}[{0}] {green}+ {silver}[{1}] = [{2}]",
+  "k4.phrases.round-summary-calc-lose": "{silver}[{0}] {red}- {silver}[{1}] = [{2}]",
   "k4.phrases.points_disabled": "{silver}Points are disabled. Minimum {gold}{0} {silver}players required.",
   "k4.phrases.rankup": "Congratulations!",
   "k4.phrases.rankdown": "Rank Decreased",
@@ -43,6 +45,7 @@
   "k4.events.roundend": "round end",
 
   "k4.events.suicide": "committing suicide",
+  "k4.events.bombexplosiondeath": "dying to bomb explosion",
   "k4.events.kill": "killing an enemy",
   "k4.events.teamkill": "killing a teammate",
   "k4.events.headshot": "headshot kill",

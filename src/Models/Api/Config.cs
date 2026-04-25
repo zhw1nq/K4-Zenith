@@ -545,12 +545,6 @@ namespace Zenith
                     ? Path.Combine(_baseConfigDirectory, "core.yaml")
                     : Path.Combine(_baseConfigDirectory, "modules", $"{moduleName}.yaml");
 
-                // GUARD: Chỉ tạo file mới nếu file chưa tồn tại, KHÔNG BAO GIỜ overwrite file đã có
-                if (File.Exists(filePath))
-                {
-                    return;
-                }
-
                 CleanupUnusedConfigs(moduleName);
 
                 var serializer = new SerializerBuilder()
