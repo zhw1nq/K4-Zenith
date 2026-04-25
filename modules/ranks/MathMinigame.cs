@@ -41,7 +41,7 @@ public class MathMinigame
     private const int MaxWrongAttempts = 3;
     private const double CooldownSeconds = 2.0;
 
-    private readonly string[] _operators = ["+", "-", "*", "/"];
+    private readonly string[] _operators = ["+", "-", "*"];
 
     public MathMinigame(Plugin plugin)
     {
@@ -314,26 +314,26 @@ public class MathMinigame
 
             string lastOp = parts.Count >= 2 ? parts[^1] : "";
 
-            if (lastOp == "/")
+            if (lastOp == "*")
             {
-                // Divisor should be small (2-20) to avoid decimals and keep it solvable
-                parts.Add(_random.Next(2, 21).ToString());
+                // Multiplier should be small (max 3)
+                parts.Add(_random.Next(2, 4).ToString());
             }
             else
             {
-                // Use smaller numbers for easier mental math
+                // Use lighter numbers for + and - for easier mental math
                 int numChoice = _random.Next(10);
-                if (numChoice < 4) // 40% small numbers (1-20)
+                if (numChoice < 5) // 50% small numbers (1-20)
                 {
                     parts.Add(_random.Next(1, 21).ToString());
                 }
-                else if (numChoice < 8) // 40% medium numbers (10-99)
+                else if (numChoice < 8) // 30% medium numbers (20-50)
                 {
-                    parts.Add(_random.Next(10, Math.Min(maxDifficulty, 100) + 1).ToString());
+                    parts.Add(_random.Next(20, Math.Min(maxDifficulty, 50) + 1).ToString());
                 }
-                else // 20% larger numbers (50-maxDifficulty, capped at 200)
+                else // 20% larger numbers (50-100)
                 {
-                    parts.Add(_random.Next(50, Math.Min(maxDifficulty, 200) + 1).ToString());
+                    parts.Add(_random.Next(50, Math.Min(maxDifficulty, 100) + 1).ToString());
                 }
             }
         }
