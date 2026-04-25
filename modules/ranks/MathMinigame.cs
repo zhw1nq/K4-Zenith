@@ -37,7 +37,7 @@ public class MathMinigame
     // Per-player tracking: cooldown until time
     private readonly ConcurrentDictionary<ulong, DateTime> _playerCooldowns = new();
 
-    private static readonly int[] WrongPenalties = [10, 25, 50];
+    private static readonly int[] WrongPenalties = [50, 100, 150];
     private const int MaxWrongAttempts = 3;
     private const double CooldownSeconds = 2.0;
 

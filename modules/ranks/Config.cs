@@ -16,7 +16,7 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Commands", "RankCommands", "Commands to show rank", new List<string> { "rank", "level" });
 
         // Register Settings
-        _moduleServices.RegisterModuleConfig("Settings", "StartPoints", "Starting points for new players", 1000);
+        _moduleServices.RegisterModuleConfig("Settings", "StartPoints", "Starting points for new players", 200);
         _moduleServices.RegisterModuleConfig("Settings", "WarmupPoints", "Allow earning points during warmup", false);
         _moduleServices.RegisterModuleConfig("Settings", "PointSummaries", "Show point summaries", true);
         _moduleServices.RegisterModuleConfig("Settings", "EnableRequirementMessages", "Enable or disable messages the messages for points being disabled", true);
@@ -27,7 +27,7 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Settings", "VipMultiplier", "Points multiplier for VIP", 1.25);
         _moduleServices.RegisterModuleConfig("Settings", "SvipMultiplier", "Points multiplier for SVIP", 1.5);
         _moduleServices.RegisterModuleConfig("Settings", "DynamicDeathPoints", "Use dynamic death point deduction", true);
-        _moduleServices.RegisterModuleConfig("Settings", "DynamicDeathPointsMaxMultiplier", "Maximum multiplier for dynamic death points", 3.50);
+        _moduleServices.RegisterModuleConfig("Settings", "DynamicDeathPointsMaxMultiplier", "Maximum multiplier for dynamic death points", 5.50);
         _moduleServices.RegisterModuleConfig("Settings", "DynamicDeathPointsMinMultiplier", "Minimum multiplier for dynamic death points", 2);
         _moduleServices.RegisterModuleConfig("Settings", "ShowRankChanges", "Show center screen notification on rank change", true);
         _moduleServices.RegisterModuleConfig("Settings", "ExtendedDeathMessages", "Use extended death messages (includes enemy name and points)", true);
@@ -42,32 +42,32 @@ public sealed partial class Plugin : BasePlugin
 
         // Register Minigame
         _moduleServices.RegisterModuleConfig("Minigame", "Enabled", "Enable math minigame", true);
-        _moduleServices.RegisterModuleConfig("Minigame", "IntervalMinutes", "Interval between math challenges (minutes)", 5);
-        _moduleServices.RegisterModuleConfig("Minigame", "RewardPoints", "Points reward for correct answer", 100);
+        _moduleServices.RegisterModuleConfig("Minigame", "IntervalMinutes", "Interval between math challenges (minutes)", 10);
+        _moduleServices.RegisterModuleConfig("Minigame", "RewardPoints", "Points reward for correct answer", 50);
         _moduleServices.RegisterModuleConfig("Minigame", "DisplayDuration", "How long to show the math question on center screen (seconds)", 30);
         _moduleServices.RegisterModuleConfig("Minigame", "WinnerDisplayDuration", "How long to show winner announcement (seconds)", 7);
         _moduleServices.RegisterModuleConfig("Minigame", "MaxDifficulty", "Max number range for operands", 200);
-        _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 4);
-        _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 8);
+        _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 5);
+        _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 10);
         _moduleServices.RegisterModuleConfig("Minigame", "AnswerCommands", "Commands to answer math challenge", new List<string> { "aw" });
 
         // Register Points
-        _moduleServices.RegisterModuleConfig("Points", "Death", "Points on death", -40);
-        _moduleServices.RegisterModuleConfig("Points", "Kill", "Points per kill", 12);
-        _moduleServices.RegisterModuleConfig("Points", "Headshot", "Bonus points for headshot", 10);
-        _moduleServices.RegisterModuleConfig("Points", "Penetrated", "Bonus points for wallbang kill", 23);
-        _moduleServices.RegisterModuleConfig("Points", "NoScope", "Bonus points for no-scope kill", 20);
-        _moduleServices.RegisterModuleConfig("Points", "Thrusmoke", "Bonus points for kill through smoke", 10);
-        _moduleServices.RegisterModuleConfig("Points", "BlindKill", "Bonus points for blind kill", 10);
+        _moduleServices.RegisterModuleConfig("Points", "Death", "Points on death", -60);
+        _moduleServices.RegisterModuleConfig("Points", "Kill", "Points per kill", 8);
+        _moduleServices.RegisterModuleConfig("Points", "Headshot", "Bonus points for headshot", 8);
+        _moduleServices.RegisterModuleConfig("Points", "Penetrated", "Bonus points for wallbang kill", 15);
+        _moduleServices.RegisterModuleConfig("Points", "NoScope", "Bonus points for no-scope kill", 10);
+        _moduleServices.RegisterModuleConfig("Points", "Thrusmoke", "Bonus points for kill through smoke", 8);
+        _moduleServices.RegisterModuleConfig("Points", "BlindKill", "Bonus points for blind kill", 8);
         _moduleServices.RegisterModuleConfig("Points", "TeamKill", "Points for team kill", -750);
         _moduleServices.RegisterModuleConfig("Points", "Suicide", "Points for suicide", -750);
-        _moduleServices.RegisterModuleConfig("Points", "Assist", "Points for assist", 7);
+        _moduleServices.RegisterModuleConfig("Points", "Assist", "Points for assist", 6);
         _moduleServices.RegisterModuleConfig("Points", "AssistFlash", "Points for flash assist", 3);
         _moduleServices.RegisterModuleConfig("Points", "TeamKillAssist", "Points for team kill assist", -150);
         _moduleServices.RegisterModuleConfig("Points", "TeamKillAssistFlash", "Points for team kill flash assist", -100);
-        _moduleServices.RegisterModuleConfig("Points", "RoundWin", "Points for round win", 35);
-        _moduleServices.RegisterModuleConfig("Points", "RoundLose", "Points for round loss", -25);
-        _moduleServices.RegisterModuleConfig("Points", "MVP", "Points for MVP", 36);
+        _moduleServices.RegisterModuleConfig("Points", "RoundWin", "Points for round win", 25);
+        _moduleServices.RegisterModuleConfig("Points", "RoundLose", "Points for round loss", -35);
+        _moduleServices.RegisterModuleConfig("Points", "MVP", "Points for MVP", 20);
         _moduleServices.RegisterModuleConfig("Points", "BombDrop", "Points for dropping the bomb", 0);
         _moduleServices.RegisterModuleConfig("Points", "BombPickup", "Points for picking up the bomb", 0);
         _moduleServices.RegisterModuleConfig("Points", "BombDefused", "Points for defusing the bomb", 15);
@@ -83,7 +83,7 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Points", "LongDistance", "Distance threshold for long distance kill (units)", 40);
         _moduleServices.RegisterModuleConfig("Points", "SecondsBetweenKills", "Time (seconds) between kills for multi-kill streak", 0);
         _moduleServices.RegisterModuleConfig("Points", "RoundEndKillStreakReset", "Reset kill streak on round end", true);
-        _moduleServices.RegisterModuleConfig("Points", "DoubleKill", "Points for double kill", 12);
+        _moduleServices.RegisterModuleConfig("Points", "DoubleKill", "Points for double kill", 10);
         _moduleServices.RegisterModuleConfig("Points", "TripleKill", "Points for triple kill", 15);
         _moduleServices.RegisterModuleConfig("Points", "Domination", "Points for domination (4 kills)", 22);
         _moduleServices.RegisterModuleConfig("Points", "Rampage", "Points for rampage (5 kills)", 75);
@@ -94,13 +94,13 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Points", "MonsterKill", "Points for monster kill (10 kills)", 55);
         _moduleServices.RegisterModuleConfig("Points", "Unstoppable", "Points for unstoppable (11 kills)", 55);
         _moduleServices.RegisterModuleConfig("Points", "GodLike", "Points for godlike (12+ kills)", 55);
-        _moduleServices.RegisterModuleConfig("Points", "GrenadeKill", "Points for HE grenade kill", 20);
+        _moduleServices.RegisterModuleConfig("Points", "GrenadeKill", "Points for HE grenade kill", 15);
         _moduleServices.RegisterModuleConfig("Points", "InfernoKill", "Points for fire kill (Molotov/Incendiary)", 10);
         _moduleServices.RegisterModuleConfig("Points", "ImpactKill", "Points for impact damage kill (e.g. grenade impact)", 150);
         _moduleServices.RegisterModuleConfig("Points", "TaserKill", "Points for taser kill (Zeus)", 20);
         _moduleServices.RegisterModuleConfig("Points", "KnifeKill", "Points for knife kill", 30);
         _moduleServices.RegisterModuleConfig("Points", "PlaytimeInterval", "Interval for playtime bonus points (minutes), 0 to disable", 10);
-        _moduleServices.RegisterModuleConfig("Points", "PlaytimePoints", "Points awarded per playtime interval", 20);
+        _moduleServices.RegisterModuleConfig("Points", "PlaytimePoints", "Points awarded per playtime interval", 10);
 
         // Get the config accessor
         _configAccessor = _moduleServices.GetModuleConfigAccessor();

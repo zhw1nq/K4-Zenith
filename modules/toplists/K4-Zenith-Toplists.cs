@@ -156,14 +156,16 @@ public class TopListsPlugin : BasePlugin
 						t1.steam_id,
 						(SELECT COUNT(*) + 1
 						FROM zenith_player_storage t2
-						WHERE CAST(JSON_EXTRACT(t2.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)) >
-							COALESCE(CAST(JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') AS DECIMAL(65,2)), 0)
+						WHERE CAST(JSON_EXTRACT(t2.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) >
+							COALESCE(CAST(JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED), 0)
+						AND CAST(JSON_EXTRACT(t2.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) >= 0
 						) as rank_position
 					FROM zenith_player_storage t1
 					WHERE
 						FIND_IN_SET(t1.steam_id, @SteamIds) > 0
 						AND JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
-						AND t1.`K4-Zenith-Ranks.storage` IS NOT NULL";
+						AND t1.`K4-Zenith-Ranks.storage` IS NOT NULL
+						AND CAST(JSON_EXTRACT(t1.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) >= 0";
 
 				string steamIdString = string.Join(",", steamIds);
 

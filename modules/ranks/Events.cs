@@ -89,7 +89,7 @@ namespace Zenith_Ranks
                                 string resultColor = finalPoints >= startPoints ? "{green}" : "{lightred}";
                                 sb.Append($"{{yellow}}={resultColor}{finalPoints:N0}");
 
-                                player.Print(sb.ToString());
+                                player.Print(CounterStrikeSharp.API.Core.Translations.StringExtensions.ReplaceColorTags(sb.ToString()));
                             }
 
                             string message = points > 0 ? Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-earn", points) : Localizer.ForPlayer(player.Controller, "k4.phrases.round-summary-lose", points);

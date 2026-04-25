@@ -719,14 +719,15 @@ public class Plugin : BasePlugin
                 using var connection = new MySqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                // Query all Top 100 players from database, ordered by points
+                // Query all Top 100 players from database, ordered by points (only positive)
                 const string query = @"
                     SELECT 
                         p.steam_id as SteamId,
-                        CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS UNSIGNED) as Points
+                        CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) as Points
                     FROM zenith_player_storage p
                     WHERE JSON_VALID(p.`K4-Zenith-Ranks.storage`) = 1
                     AND JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') IS NOT NULL
+                    AND CAST(JSON_EXTRACT(p.`K4-Zenith-Ranks.storage`, '$.Points') AS SIGNED) >= 0
                     ORDER BY Points DESC
                     LIMIT 100";
 
@@ -850,23 +851,24 @@ public class Plugin : BasePlugin
 
         string? skillgroupId = null;
 
-        // Priority Logic based on user spec
         if (chosenTag == "ranking" || chosenTag == "Default")
         {
-            // Case 1, 2, 4: !tags = Ranking
-            // Check if player is in Top 100
+            // Check Top 100 (positive points) → 202601xx icons
             if (_top100Cache.TryGetValue(player.SteamID, out var cacheEntry))
             {
-                // Player is in Top 100 - use ranking skillgroup
                 skillgroupId = $"{SKILLGROUP_BASE}{cacheEntry.Placement}";
+            }
+            // Check Bottom 100 (negative points) → 202604xx icons
+            else if (_bottom100Cache.TryGetValue(player.SteamID, out var bottomEntry))
+            {
+                skillgroupId = $"{NEGATIVE_SKILLGROUP_BASE}{bottomEntry.Placement}";
             }
             else
             {
-                // Player NOT in Top 100 - fallback to highest priority permission's skillgroup
+                // Not in Top 100 or Bottom 100 - fallback to highest priority permission's skillgroup
                 _tagConfigs ??= GetTagConfigs();
                 if (_tagConfigs != null)
                 {
-                    // Sort by Priority descending to get highest priority first
                     var sortedConfigs = _tagConfigs
                         .Where(kvp => kvp.Key != "all")
                         .OrderByDescending(kvp => kvp.Value.Priority);
@@ -875,7 +877,6 @@ public class Plugin : BasePlugin
                     {
                         if (CheckPermissionOrSteamID(player, kvp.Key))
                         {
-                            // Found permission - get default preset's skillgroup
                             if (!string.IsNullOrEmpty(kvp.Value.DefaultPreset) &&
                                 _predefinedConfigs.TryGetValue(kvp.Value.DefaultPreset, out var preset) &&
                                 !string.IsNullOrEmpty(preset.SkillgroupID))
@@ -890,17 +891,11 @@ public class Plugin : BasePlugin
         }
         else if (!string.IsNullOrEmpty(chosenTag) && _predefinedConfigs.TryGetValue(chosenTag, out var selectedPreset))
         {
-            // Case 3: Player explicitly chose a permission preset
+            // Player explicitly chose a permission preset
             if (!string.IsNullOrEmpty(selectedPreset.SkillgroupID))
             {
                 skillgroupId = selectedPreset.SkillgroupID;
             }
-        }
-
-        // Check if player is in Bottom 100 (most negative points) - overrides if no skillgroup set yet
-        if (string.IsNullOrEmpty(skillgroupId) && _bottom100Cache.TryGetValue(player.SteamID, out var bottomEntry))
-        {
-            skillgroupId = $"{NEGATIVE_SKILLGROUP_BASE}{bottomEntry.Placement}";
         }
 
         // Apply skillgroup to scoreboard

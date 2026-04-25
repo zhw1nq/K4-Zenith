@@ -1,36 +1,36 @@
-﻿,,,,,
+,,,,,
 Nhóm,Cơ chế (Action),Mô tả,Điểm cũ,Điểm mới,Mức thay đổi
-Minigame,MaxDifficulty,Dải số tối đa cho phép toán,0,999,99
-Minigame,MinOperands,Số lượng thành phần phép toán tối thiểu,0,3,3
-Minigame,MaxOperands,Số lượng thành phần phép toán tối đa,0,6,6
-Minigame,WrongAnswerPenalty,Trả lời sai phép toán,0,-50,-50
-Minigame,RewardPoints,Trả lời đúng phép toán,0,150,150
-Điểm số,Kill,Tiêu diệt kẻ địch,8,12,4
-Điểm số,Headshot,Thưởng thêm khi headshot,6,10,4
-Điểm số,Penetrated,Thưởng thêm khi đục tường,10,23,13
-Điểm số,NoScope,Thưởng thêm khi bắn không ngắm,15,20,5
-Điểm số,Thrusmoke,Thưởng thêm khi bắn xuyên khói,15,10,-5
-Điểm số,BlindKill,Thưởng thêm khi giết người lúc bị mù,6,10,4
-Điểm số,LongDistanceKill,Thưởng thêm khi bắn từ xa,10,20,10
-Điểm số,LongDistance,Khoảng cách tối thiểu để tính là từ xa,30,40,10
-Điểm số,Death,Bị trừ điểm khi chết,-25,-40,-15
-Điểm số,Suicide,Trừ điểm khi tự sát,-100,-750,-650
-Điểm số,TeamKill,Trừ điểm khi giết đồng đội,-150,-750,-600
-Điểm số,Assist,Hỗ trợ giết địch,5,7,2
-Điểm số,AssistFlash,Hỗ trợ giết địch bằng Flash,7,3,-4
-Điểm số,TeamKillAssist,Hỗ trợ đồng đội giết đồng đội,-50,-150,-100
-Điểm số,TeamKillAssistFlash,Hỗ trợ đồng đội giết đồng đội bằng Flash,-50,-100,-50
-Điểm số,RoundWin,Đội thắng round,5,35,30
-Điểm số,RoundLose,Đội thua round,-15,-25,-10
-Điểm số,MVP,Đạt danh hiệu MVP,10,36,26
-Điểm số,BombDefused,Gỡ bom thành công,25,15,-10
-Điểm số,BombDefusedOthers,Điểm cho đồng đội khi bom được gỡ,10,5,-5
-Điểm số,BombPlant,Đặt bom thành công,5,10,5
-Điểm số,GrenadeKill,Giết bằng lựu đạn nổ (HE),30,20,-10
-Điểm số,InfernoKill,Giết bằng lửa (Molotov/Incendiary),30,10,-20
-Điểm số,TaserKill,Giết bằng súng điện (Zeus),15,20,5
-Điểm số,DoubleKill,Chuỗi giết 2 mạng,10,12,2
-Điểm số,TripleKill,Chuỗi giết 3 mạng,12,15,3
-Điểm số,Domination,Chuỗi giết 4 mạng,15,22,7
-Điểm số,Rampage,Chuỗi giết 5 mạng,20,75,55
+Minigame,MaxDifficulty,Dải số tối đa cho phép toán,999,200,-799
+Minigame,MinOperands,Số lượng thành phần phép toán tối thiểu,3,5,2
+Minigame,MaxOperands,Số lượng thành phần phép toán tối đa,6,10,4
+Minigame,WrongAnswerPenalty,Trả lời sai phép toán,-50,"-50 đến -150",-100
+Minigame,RewardPoints,Trả lời đúng phép toán,150,50,-100
+Điểm số,Kill,Tiêu diệt kẻ địch,12,8,-4
+Điểm số,Headshot,Thưởng thêm khi headshot,10,8,-2
+Điểm số,Penetrated,Thưởng thêm khi đục tường,23,15,-8
+Điểm số,NoScope,Thưởng thêm khi bắn không ngắm,20,10,-10
+Điểm số,Thrusmoke,Thưởng thêm khi bắn xuyên khói,10,8,-2
+Điểm số,BlindKill,Thưởng thêm khi giết người lúc bị mù,10,8,-2
+Điểm số,LongDistanceKill,Thưởng thêm khi bắn từ xa,20,20,0
+Điểm số,LongDistance,Khoảng cách tối thiểu để tính là từ xa,40,40,0
+Điểm số,Death,Bị trừ điểm khi chết,-40,-60,-20
+Điểm số,Suicide,Trừ điểm khi tự sát,-750,-750,0
+Điểm số,TeamKill,Trừ điểm khi giết đồng đội,-750,-750,0
+Điểm số,Assist,Hỗ trợ giết địch,7,6,-1
+Điểm số,AssistFlash,Hỗ trợ giết địch bằng Flash,3,3,0
+Điểm số,TeamKillAssist,Hỗ trợ đồng đội giết đồng đội,-150,-150,0
+Điểm số,TeamKillAssistFlash,Hỗ trợ đồng đội giết đồng đội bằng Flash,-100,-100,0
+Điểm số,RoundWin,Đội thắng round,35,25,-10
+Điểm số,RoundLose,Đội thua round,-25,-35,-10
+Điểm số,MVP,Đạt danh hiệu MVP,36,20,-16
+Điểm số,BombDefused,Gỡ bom thành công,15,15,0
+Điểm số,BombDefusedOthers,Điểm cho đồng đội khi bom được gỡ,5,5,0
+Điểm số,BombPlant,Đặt bom thành công,10,10,0
+Điểm số,GrenadeKill,Giết bằng lựu đạn nổ (HE),20,15,-5
+Điểm số,InfernoKill,Giết bằng lửa (Molotov/Incendiary),10,10,0
+Điểm số,TaserKill,Giết bằng súng điện (Zeus),20,20,0
+Điểm số,DoubleKill,Chuỗi giết 2 mạng,12,10,-2
+Điểm số,TripleKill,Chuỗi giết 3 mạng,15,15,0
+Điểm số,Domination,Chuỗi giết 4 mạng,22,22,0
+Điểm số,Rampage,Chuỗi giết 5 mạng,75,75,0
 ,,,,,

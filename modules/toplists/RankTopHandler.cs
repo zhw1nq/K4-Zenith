@@ -109,10 +109,11 @@ public class RankTopHandler
 			var columnName = "K4-Zenith-Ranks.storage";
 			var query = $@"
 				SELECT p.name,
-					   CAST(JSON_EXTRACT(p.`{columnName}`, '$.Points') AS UNSIGNED) as Points
+					   CAST(JSON_EXTRACT(p.`{columnName}`, '$.Points') AS SIGNED) as Points
 				FROM zenith_player_storage p
 				WHERE JSON_VALID(p.`{columnName}`) = 1
 				AND JSON_EXTRACT(p.`{columnName}`, '$.Points') IS NOT NULL
+				AND CAST(JSON_EXTRACT(p.`{columnName}`, '$.Points') AS SIGNED) >= 0
 				ORDER BY Points DESC
 				LIMIT @Limit";
 
