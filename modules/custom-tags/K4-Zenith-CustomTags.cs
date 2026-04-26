@@ -53,6 +53,10 @@ public class Plugin : BasePlugin
     private const int BOTTOM100_LIMIT = 101;
     private const string NEGATIVE_SKILLGROUP_BASE = "202604";
 
+    // Special skillgroup icons
+    private const string NGUHOC_SKILLGROUP = "3636";   // Most negative player
+    private const string VODANH_SKILLGROUP = "1818";   // Players not in any top/bottom ranking
+
     public KitsuneMenu Menu { get; private set; } = null!;
     public IModuleConfigAccessor _coreAccessor = null!;
 
@@ -84,7 +88,11 @@ public class Plugin : BasePlugin
                 manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{NEGATIVE_SKILLGROUP_BASE}{i}.vsvg");
             }
 
-            Logger.LogInformation("Precached {Count} negative skillgroup icons", BOTTOM100_LIMIT);
+            // Precache special skillgroup icons
+            manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{NGUHOC_SKILLGROUP}.vsvg");
+            manifest.AddResource($"panorama/images/icons/skillgroups/skillgroup{VODANH_SKILLGROUP}.vsvg");
+
+            Logger.LogInformation("Precached {Count} negative skillgroup icons + 2 special icons", BOTTOM100_LIMIT);
         });
 
         // Register OnTick for scoreboard skillgroup updates
@@ -668,6 +676,10 @@ public class Plugin : BasePlugin
             Server.PrecacheModel(bottomPath);
         }
 
+        // Precache special skillgroup icons
+        Server.PrecacheModel($"panorama/images/icons/skillgroups/skillgroup{NGUHOC_SKILLGROUP}.vsvg");
+        Server.PrecacheModel($"panorama/images/icons/skillgroups/skillgroup{VODANH_SKILLGROUP}.vsvg");
+
         // Precache additional skillgroups from predefined_tags.json
         _predefinedConfigs ??= GetPredefinedTagConfigs();
         if (_predefinedConfigs != null)
@@ -859,14 +871,23 @@ public class Plugin : BasePlugin
             {
                 skillgroupId = $"{SKILLGROUP_BASE}{cacheEntry.Placement}";
             }
-            // Check Bottom 100 (negative points) → 202604xx icons
+            // Check Bottom 100 (negative points) → 202604xx icons or special ngu học icon
             else if (_bottom100Cache.TryGetValue(player.SteamID, out var bottomEntry))
             {
-                skillgroupId = $"{NEGATIVE_SKILLGROUP_BASE}{bottomEntry.Placement}";
+                // Most negative player (position 100) gets the special "ngu học" icon
+                if (bottomEntry.Placement == 100)
+                {
+                    skillgroupId = NGUHOC_SKILLGROUP;
+                }
+                else
+                {
+                    skillgroupId = $"{NEGATIVE_SKILLGROUP_BASE}{bottomEntry.Placement}";
+                }
             }
             else
             {
-                // Not in Top 100 or Bottom 100 - fallback to highest priority permission's skillgroup
+                // Not in Top 100 or Bottom 100 - check permission preset first
+                bool hasPermissionPreset = false;
                 _tagConfigs ??= GetTagConfigs();
                 if (_tagConfigs != null)
                 {
@@ -883,10 +904,17 @@ public class Plugin : BasePlugin
                                 !string.IsNullOrEmpty(preset.SkillgroupID))
                             {
                                 skillgroupId = preset.SkillgroupID;
+                                hasPermissionPreset = true;
                                 break;
                             }
                         }
                     }
+                }
+
+                // No permission preset found → "vô danh" icon
+                if (!hasPermissionPreset)
+                {
+                    skillgroupId = VODANH_SKILLGROUP;
                 }
             }
         }
