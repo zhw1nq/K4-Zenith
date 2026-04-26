@@ -808,14 +808,15 @@ public class Plugin : BasePlugin
 
                 // Clear and rebuild cache
                 _bottom100Cache.Clear();
-                int position = 0;
+                int position = 100;
 
                 foreach (var player in bottomPlayers)
                 {
                     if (!string.IsNullOrEmpty(player.SteamId) && ulong.TryParse(player.SteamId, out ulong steamId))
                     {
                         _bottom100Cache[steamId] = (position, DateTime.UtcNow);
-                        position++;
+                        position--;
+                        if (position < 0) break; // Ensure we don't go below 0
                     }
                 }
 
