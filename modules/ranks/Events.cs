@@ -12,6 +12,7 @@ namespace Zenith_Ranks
     {
         private EventManager? _eventManager;
         private readonly Dictionary<string, (string targetProperty, int points)> _experienceEvents = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<ulong> _disconnectingPlayers = [];
 
         private void Initialize_Events()
         {
@@ -28,6 +29,7 @@ namespace Zenith_Ranks
             RegisterEventHandler<EventRoundPrestart>(OnRoundPrestart, HookMode.Post);
             RegisterEventHandler<EventCsWinPanelMatch>(OnCsWinPanelMatch, HookMode.Post);
             RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn, HookMode.Post);
+            RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect, HookMode.Pre);
 
             InitializeExperienceEvents();
         }
@@ -121,6 +123,15 @@ namespace Zenith_Ranks
         private HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
         {
             HandlePlayerSpawn(@event.Userid);
+            return HookResult.Continue;
+        }
+
+        private HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
+        {
+            if (@event.Userid != null && !@event.Userid.IsBot && !@event.Userid.IsHLTV)
+            {
+                _disconnectingPlayers.Add(@event.Userid.SteamID);
+            }
             return HookResult.Continue;
         }
 
@@ -336,6 +347,10 @@ namespace Zenith_Ranks
             {
                 if (deathEvent.Attacker == null || deathEvent.Attacker.SteamID == victim.Controller.SteamID)
                 {
+                    // Skip suicide penalty if player is disconnecting (CS2 auto-kills disconnecting players)
+                    if (_plugin._disconnectingPlayers.Remove(victim.Controller.SteamID))
+                        return;
+
                     if (!_plugin._isGameEnd)
                     {
                         bool isBombDeath = deathEvent.Weapon.Equals("planted_c4", StringComparison.OrdinalIgnoreCase);
