@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Net;
+using System.Data;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
@@ -21,9 +21,6 @@ public enum AnswerResult
 
 public class MathMinigame
 {
-    private const string MODULE_ID = "K4-Zenith-Ranks";
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
-
     private readonly Plugin _plugin;
     private readonly Random _random = new();
 
@@ -31,6 +28,10 @@ public class MathMinigame
     private string? _currentAnswer;
     private bool _isActive;
     private DateTime _lastChallengeTime = DateTime.MinValue;
+
+    // Timer reference for proper cancellation
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _expireTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _resultClearTimer;
 
     // Per-player tracking: wrong attempt count
     private readonly ConcurrentDictionary<ulong, int> _playerWrongAttempts = new();
@@ -42,6 +43,9 @@ public class MathMinigame
     private const double CooldownSeconds = 2.0;
 
     private readonly string[] _operators = ["+", "-", "*"];
+
+    // Local expression evaluator
+    private static readonly DataTable _calculator = new();
 
     public MathMinigame(Plugin plugin)
     {
@@ -68,109 +72,74 @@ public class MathMinigame
 
     private void StartChallenge()
     {
-        Task.Run(async () =>
+        try
         {
-            try
+            string? expression = null;
+            string? answer = null;
+
+            // Retry up to 10 times to get a valid result
+            for (int attempt = 0; attempt < 10; attempt++)
             {
-                string? expression = null;
-                string? answer = null;
+                expression = GenerateExpression();
+                answer = EvaluateLocal(expression);
 
-                // Retry up to 10 times to get a result within 5 digits
-                for (int attempt = 0; attempt < 10; attempt++)
+                if (answer == null)
+                    continue;
+
+                // Validate: integer, within 5 digits (abs <= 99999)
+                if (long.TryParse(answer, out long resultValue))
                 {
-                    expression = GenerateExpression();
-                    answer = await EvaluateExpression(expression);
-
-                    if (answer == null)
-                        continue;
-
-                    answer = answer.Trim();
-
-                    // Validate result is an integer and within 5 digits (abs value <= 99999)
-                    if (double.TryParse(answer, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out double resultValue))
-                    {
-                        // Must be integer (no decimals), allow negatives, within 5 digits
-                        if (resultValue == Math.Floor(resultValue) && Math.Abs(resultValue) <= 99999
-                            && !double.IsInfinity(resultValue) && !double.IsNaN(resultValue))
-                        {
-                            answer = ((long)resultValue).ToString();
-                            break;
-                        }
-                    }
-
-                    // Result too large or invalid, retry
-                    answer = null;
+                    if (Math.Abs(resultValue) <= 99999)
+                        break;
                 }
 
-                if (expression == null || answer == null)
-                {
-                    _plugin.Logger.LogWarning("[MathMinigame] Failed to generate valid expression after retries");
-                    return;
-                }
-
-                Server.NextFrame(() =>
-                {
-                    _currentExpression = expression;
-                    _currentAnswer = answer;
-                    _isActive = true;
-                    _lastChallengeTime = DateTime.Now;
-
-                    // Reset per-player tracking
-                    _playerWrongAttempts.Clear();
-                    _playerCooldowns.Clear();
-
-                    int displayDuration = _plugin._configAccessor.GetValue<int>("Minigame", "DisplayDuration");
-
-                    // Show center HTML to all players
-                    foreach (var player in _plugin.GetValidPlayers())
-                    {
-                        try
-                        {
-                            string localizedHtml = $@"
-                            <font color='#FFD700' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
-                            <font color='#FFFFFF' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression)}</font><br>
-                            <font color='#00FF00' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.hint")}</font>";
-
-                            player.PrintToCenter(localizedHtml, displayDuration, ActionPriority.High);
-                        }
-                        catch { }
-                    }
-
-                    // Chat announcement
-                    _plugin._moduleServices?.PrintForAll(
-                        _plugin.Localizer.ForPlayer(null, "k4.minigame.chat.announce", _currentExpression));
-
-                    // Auto-expire after displayDuration
-                    _plugin.AddTimer((float)displayDuration, () =>
-                    {
-                        if (_isActive)
-                        {
-                            _isActive = false;
-                            _currentExpression = null;
-                            _currentAnswer = null;
-
-                            // Clear center HTML for all players
-                            foreach (var p in _plugin.GetValidPlayers())
-                            {
-                                try
-                                {
-                                    p.PrintToCenter("", 1, ActionPriority.High);
-                                }
-                                catch { }
-                            }
-
-                            _plugin._moduleServices?.PrintForAll(
-                                _plugin.Localizer.ForPlayer(null, "k4.minigame.expired"));
-                        }
-                    });
-                });
+                // Result too large or invalid, retry
+                answer = null;
             }
-            catch (Exception ex)
+
+            if (expression == null || answer == null)
             {
-                _plugin.Logger.LogError("[MathMinigame] Error starting challenge: {Error}", ex.Message);
+                _plugin.Logger.LogWarning("[MathMinigame] Failed to generate valid expression after retries");
+                return;
             }
-        });
+
+            _currentExpression = expression;
+            _currentAnswer = answer;
+            _isActive = true;
+            _lastChallengeTime = DateTime.Now;
+
+            // Reset per-player tracking
+            _playerWrongAttempts.Clear();
+            _playerCooldowns.Clear();
+
+            int displayDuration = _plugin._configAccessor.GetValue<int>("Minigame", "DisplayDuration");
+
+            // Show center HTML to all players
+            ShowChallengeHtml(displayDuration);
+
+            // Chat announcement
+            _plugin._moduleServices?.PrintForAll(
+                _plugin.Localizer.ForPlayer(null, "k4.minigame.chat.announce", _currentExpression));
+
+            // Cancel any previous expire timer
+            _expireTimer?.Kill();
+
+            // Auto-expire after displayDuration
+            _expireTimer = _plugin.AddTimer((float)displayDuration, () =>
+            {
+                if (!_isActive)
+                    return; // Already solved, skip
+
+                EndChallenge();
+
+                _plugin._moduleServices?.PrintForAll(
+                    _plugin.Localizer.ForPlayer(null, "k4.minigame.expired"));
+            });
+        }
+        catch (Exception ex)
+        {
+            _plugin.Logger.LogError("[MathMinigame] Error starting challenge: {Error}", ex.Message);
+        }
     }
 
     public AnswerResult TryAnswer(CCSPlayerController player, string message)
@@ -254,23 +223,23 @@ public class MathMinigame
             return AnswerResult.Wrong;
         }
 
-        // Correct answer!
-        _isActive = false;
+        // === Correct answer! ===
         string expression = _currentExpression ?? "";
         string answer = _currentAnswer;
-        _currentExpression = null;
-        _currentAnswer = null;
+
+        // 1. Stop the challenge immediately
+        EndChallenge();
 
         int rewardPoints = _plugin._configAccessor.GetValue<int>("Minigame", "RewardPoints");
         int winnerDisplayDuration = _plugin._configAccessor.GetValue<int>("Minigame", "WinnerDisplayDuration");
 
-        // Give points to the winner
+        // 2. Give points to the winner
         if (_plugin._playerCache.TryGetValue(player, out var playerServices))
         {
             _plugin.ModifyPlayerPoints(playerServices, rewardPoints, "k4.events.minigame");
         }
 
-        // Show brief result on challenge panel then hide it
+        // 3. Show winner result HTML to all players
         foreach (var p in _plugin.GetValidPlayers())
         {
             try
@@ -284,24 +253,71 @@ public class MathMinigame
             catch { }
         }
 
-        // Auto-hide after winnerDisplayDuration
-        _plugin.AddTimer((float)winnerDisplayDuration, () =>
+        // 4. Auto-clear winner HTML after duration
+        _resultClearTimer?.Kill();
+        _resultClearTimer = _plugin.AddTimer((float)winnerDisplayDuration, () =>
         {
-            foreach (var p in _plugin.GetValidPlayers())
-            {
-                try
-                {
-                    p.PrintToCenter("", 1, ActionPriority.High);
-                }
-                catch { }
-            }
+            ClearAllCenterHtml();
         });
 
-        // Chat announcement
+        // 5. Chat announcement
         _plugin._moduleServices?.PrintForAll(
             _plugin.Localizer.ForPlayer(null, "k4.minigame.winner.chat", player.PlayerName, rewardPoints, expression, answer));
 
         return AnswerResult.Correct;
+    }
+
+    /// <summary>
+    /// Ends the current challenge: resets state and cancels expire timer.
+    /// Must be called before showing result/expired messages.
+    /// </summary>
+    private void EndChallenge()
+    {
+        _isActive = false;
+        _currentExpression = null;
+        _currentAnswer = null;
+
+        // Cancel expire timer so it doesn't fire after challenge is resolved
+        _expireTimer?.Kill();
+        _expireTimer = null;
+
+        // Clear challenge HTML from all players immediately
+        ClearAllCenterHtml();
+    }
+
+    /// <summary>
+    /// Clears center HTML for all valid players.
+    /// </summary>
+    private void ClearAllCenterHtml()
+    {
+        foreach (var p in _plugin.GetValidPlayers())
+        {
+            try
+            {
+                p.PrintToCenter(" ", 1, ActionPriority.High);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Shows the challenge question HTML to all players.
+    /// </summary>
+    private void ShowChallengeHtml(int displayDuration)
+    {
+        foreach (var player in _plugin.GetValidPlayers())
+        {
+            try
+            {
+                string localizedHtml = $@"
+                <font color='#FFD700' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.title")}</font><br>
+                <font color='#FFFFFF' class='fontSize-m'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.question", _currentExpression!)}</font><br>
+                <font color='#00FF00' class='fontSize-s'>{_plugin.Localizer.ForPlayer(player.Controller, "k4.minigame.challenge.hint")}</font>";
+
+                player.PrintToCenter(localizedHtml, displayDuration, ActionPriority.High);
+            }
+            catch { }
+        }
     }
 
     private string GenerateExpression()
@@ -366,20 +382,31 @@ public class MathMinigame
         return string.Join(" ", parts);
     }
 
-    private static async Task<string?> EvaluateExpression(string expression)
+    /// <summary>
+    /// Evaluates a math expression locally using DataTable.Compute.
+    /// Returns the integer result as a string, or null if evaluation fails.
+    /// </summary>
+    private static string? EvaluateLocal(string expression)
     {
         try
         {
-            string encoded = WebUtility.UrlEncode(expression);
-            string url = $"http://api.mathjs.org/v4/?expr={encoded}";
+            // DataTable.Compute can handle +, -, *, /, parentheses
+            object result = _calculator.Compute(expression, null);
 
-            HttpResponseMessage response = await _httpClient.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadAsStringAsync();
-            }
+            if (result == null || result == DBNull.Value)
+                return null;
 
-            return null;
+            double value = Convert.ToDouble(result);
+
+            // Must be a finite integer
+            if (double.IsInfinity(value) || double.IsNaN(value))
+                return null;
+
+            // Check if result is integer (no decimals)
+            if (value != Math.Floor(value))
+                return null;
+
+            return ((long)value).ToString();
         }
         catch
         {
