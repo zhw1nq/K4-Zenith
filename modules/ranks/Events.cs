@@ -13,6 +13,7 @@ namespace Zenith_Ranks
         private EventManager? _eventManager;
         private readonly Dictionary<string, (string targetProperty, int points)> _experienceEvents = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<ulong> _disconnectingPlayers = [];
+        private readonly HashSet<ulong> _teamChangingPlayers = [];
 
         private void Initialize_Events()
         {
@@ -30,6 +31,7 @@ namespace Zenith_Ranks
             RegisterEventHandler<EventCsWinPanelMatch>(OnCsWinPanelMatch, HookMode.Post);
             RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn, HookMode.Post);
             RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect, HookMode.Pre);
+            RegisterEventHandler<EventPlayerTeam>(OnPlayerTeam, HookMode.Pre);
 
             InitializeExperienceEvents();
         }
@@ -131,6 +133,20 @@ namespace Zenith_Ranks
             if (@event.Userid != null && !@event.Userid.IsBot && !@event.Userid.IsHLTV)
             {
                 _disconnectingPlayers.Add(@event.Userid.SteamID);
+            }
+            return HookResult.Continue;
+        }
+
+        private HookResult OnPlayerTeam(EventPlayerTeam @event, GameEventInfo info)
+        {
+            if (@event.Userid != null && !@event.Userid.IsBot && !@event.Userid.IsHLTV)
+            {
+                // Track players switching teams (e.g. going to Spectator)
+                // CS2 auto-kills the player when changing team, this prevents false suicide penalty
+                if (@event.Oldteam > (int)CsTeam.Spectator)
+                {
+                    _teamChangingPlayers.Add(@event.Userid.SteamID);
+                }
             }
             return HookResult.Continue;
         }
@@ -349,6 +365,10 @@ namespace Zenith_Ranks
                 {
                     // Skip suicide penalty if player is disconnecting (CS2 auto-kills disconnecting players)
                     if (_plugin._disconnectingPlayers.Remove(victim.Controller.SteamID))
+                        return;
+
+                    // Skip suicide penalty if player is switching teams (e.g. going to Spectator)
+                    if (_plugin._teamChangingPlayers.Remove(victim.Controller.SteamID))
                         return;
 
                     if (!_plugin._isGameEnd)
