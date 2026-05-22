@@ -40,16 +40,41 @@ public sealed partial class Plugin : BasePlugin
         _moduleServices.RegisterModuleConfig("Settings", "NegativeRecoveryInterval", "Interval in minutes for negative recovery", 5);
         _moduleServices.RegisterModuleConfig("Settings", "NegativeRecoveryAmount", "Points recovered per interval when negative", 50);
 
-        // Register Minigame
-        _moduleServices.RegisterModuleConfig("Minigame", "Enabled", "Enable math minigame", true);
-        _moduleServices.RegisterModuleConfig("Minigame", "IntervalMinutes", "Interval between math challenges (minutes)", 10);
-        _moduleServices.RegisterModuleConfig("Minigame", "RewardPoints", "Points reward for correct answer", 50);
-        _moduleServices.RegisterModuleConfig("Minigame", "DisplayDuration", "How long to show the math question on center screen (seconds)", 30);
+        // Register Minigame - General
+        _moduleServices.RegisterModuleConfig("Minigame", "Enabled", "Enable minigame challenges", true);
+        _moduleServices.RegisterModuleConfig("Minigame", "IntervalMinutes", "Interval between challenges (minutes)", 10);
+        _moduleServices.RegisterModuleConfig("Minigame", "DisplayDuration", "How long to show the question on center screen (seconds)", 30);
         _moduleServices.RegisterModuleConfig("Minigame", "WinnerDisplayDuration", "How long to show winner announcement (seconds)", 7);
+        _moduleServices.RegisterModuleConfig("Minigame", "AnswerCommands", "Commands to answer challenge", new List<string> { "aw" });
+
+        // Minigame - Rewards (Top 3)
+        _moduleServices.RegisterModuleConfig("Minigame", "RewardPoints", "Base points reward for 1st place", 50);
+        _moduleServices.RegisterModuleConfig("Minigame", "Reward2ndPercent", "Percent of RewardPoints for 2nd place (0 to disable)", 75);
+        _moduleServices.RegisterModuleConfig("Minigame", "Reward3rdPercent", "Percent of RewardPoints for 3rd place (0 to disable)", 50);
+        _moduleServices.RegisterModuleConfig("Minigame", "GracePeriodSeconds", "Extra seconds after 1st correct answer for others to answer", 5);
+
+        // Minigame - Penalties
+        _moduleServices.RegisterModuleConfig("Minigame", "MaxWrongAttempts", "Max wrong attempts per player per challenge", 3);
+        _moduleServices.RegisterModuleConfig("Minigame", "WrongPenalty1", "Points penalty for 1st wrong attempt", 50);
+        _moduleServices.RegisterModuleConfig("Minigame", "WrongPenalty2", "Points penalty for 2nd wrong attempt", 100);
+        _moduleServices.RegisterModuleConfig("Minigame", "WrongPenalty3", "Points penalty for 3rd wrong attempt", 150);
+        _moduleServices.RegisterModuleConfig("Minigame", "CooldownSeconds", "Cooldown between wrong attempts (seconds)", 2.0);
+
+        // Minigame - Math Mode
         _moduleServices.RegisterModuleConfig("Minigame", "MaxDifficulty", "Max number range for operands", 200);
         _moduleServices.RegisterModuleConfig("Minigame", "MinOperands", "Minimum operands in expression", 2);
         _moduleServices.RegisterModuleConfig("Minigame", "MaxOperands", "Maximum operands in expression", 4);
-        _moduleServices.RegisterModuleConfig("Minigame", "AnswerCommands", "Commands to answer math challenge", new List<string> { "aw" });
+
+        // Minigame - Game Modes
+        _moduleServices.RegisterModuleConfig("Minigame", "EnableMathMode", "Enable math challenge mode", true);
+        _moduleServices.RegisterModuleConfig("Minigame", "EnableReactionMode", "Enable reaction (type random string) mode", true);
+        _moduleServices.RegisterModuleConfig("Minigame", "EnableUnscrambleMode", "Enable unscramble (CS2 map/weapon names) mode", true);
+        _moduleServices.RegisterModuleConfig("Minigame", "ReactionStringLength", "Length of random string for reaction mode", 5);
+
+        // Minigame - Auto-scaling Difficulty
+        _moduleServices.RegisterModuleConfig("Minigame", "AutoScaleEnabled", "Scale difficulty and rewards based on player count", true);
+        _moduleServices.RegisterModuleConfig("Minigame", "AutoScaleThreshold", "Player count threshold to start scaling up", 10);
+        _moduleServices.RegisterModuleConfig("Minigame", "AutoScaleMaxMultiplier", "Max difficulty/reward multiplier at full server", 2.0);
 
         // Register Points
         _moduleServices.RegisterModuleConfig("Points", "Death", "Points on death", -50);

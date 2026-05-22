@@ -330,4 +330,25 @@ public sealed partial class Plugin : BasePlugin
 
         _mathMinigame.TryAnswer(player, answer);
     }
+
+    public void OnDebugMinigameCommand(CCSPlayerController? player, CommandInfo info)
+    {
+        if (_mathMinigame == null)
+            return;
+
+        string modeArg = info.GetArg(1)?.Trim().ToLower() ?? "";
+
+        MinigameMode? forceMode = modeArg switch
+        {
+            "math" => MinigameMode.Math,
+            "reaction" => MinigameMode.Reaction,
+            "unscramble" => MinigameMode.Unscramble,
+            _ => null
+        };
+
+        _mathMinigame.ForceStartChallenge(forceMode);
+
+        string modeStr = forceMode?.ToString() ?? "Random";
+        _moduleServices?.PrintForPlayer(player, $"{{lime}}[Debug] {{silver}}Minigame started: {{green}}{modeStr}");
+    }
 }

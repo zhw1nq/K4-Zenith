@@ -234,12 +234,13 @@ public sealed partial class Plugin : BasePlugin
     private void RegisterCommands()
     {
         _moduleServices!.RegisterModuleCommands(_configAccessor.GetValue<List<string>>("Commands", "RankCommands"), "Show the rank informations.", OnRankCommand, CommandUsage.CLIENT_ONLY);
-        _moduleServices!.RegisterModuleCommands(["zgivepoint", "zgivepoints"], "Gives Zenith Rank point to the player.", OnGivePoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@zenith/point-admin");
-        _moduleServices!.RegisterModuleCommands(["ztakepoint", "ztakepoints"], "Takes Zenith Rank point from the player.", OnTakePoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@zenith/point-admin");
-        _moduleServices!.RegisterModuleCommands(["zsetpoint", "zsetpoints"], "Sets Zenith Rank point for the player.", OnSetPoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@zenith/point-admin");
-        _moduleServices!.RegisterModuleCommands(["zresetpoint", "zresetpoints"], "Resets Zenith storages for the player.", OnResetPoints, CommandUsage.CLIENT_AND_SERVER, 1, "<target>", "@zenith/point-admin");
+        _moduleServices!.RegisterModuleCommands(["zgivepoint", "zgivepoints"], "Gives Zenith Rank point to the player.", OnGivePoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@css/root");
+        _moduleServices!.RegisterModuleCommands(["ztakepoint", "ztakepoints"], "Takes Zenith Rank point from the player.", OnTakePoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@css/root");
+        _moduleServices!.RegisterModuleCommands(["zsetpoint", "zsetpoints"], "Sets Zenith Rank point for the player.", OnSetPoints, CommandUsage.CLIENT_AND_SERVER, 2, "<target> <amount>", "@css/root");
+        _moduleServices!.RegisterModuleCommands(["zresetpoint", "zresetpoints"], "Resets Zenith storages for the player.", OnResetPoints, CommandUsage.CLIENT_AND_SERVER, 1, "<target>", "@css/root");
         _moduleServices!.RegisterModuleCommands(["ranks"], "Shows the rank informations.", OnRanksCommand, CommandUsage.CLIENT_ONLY);
         _moduleServices!.RegisterModuleCommands(_configAccessor.GetValue<List<string>>("Minigame", "AnswerCommands"), "Answer math minigame challenge.", OnAnswerCommand, CommandUsage.CLIENT_ONLY, 1, "<answer>");
+        _moduleServices!.RegisterModuleCommand("zdebugminigame", "Debug: Force start a minigame challenge.", OnDebugMinigameCommand, CommandUsage.CLIENT_AND_SERVER, 0, "[math|reaction|unscramble]", "@css/root");
     }
 
     private void SetupZenithEvents()
