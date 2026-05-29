@@ -113,6 +113,8 @@ namespace Zenith_Ranks
         {
             _isGameEnd = false;
             _playerSpawned.Clear();
+            _disconnectingPlayers.Clear();
+            _teamChangingPlayers.Clear();
             return HookResult.Continue;
         }
 
@@ -369,6 +371,12 @@ namespace Zenith_Ranks
 
                     // Skip suicide penalty if player is switching teams (e.g. going to Spectator)
                     if (_plugin._teamChangingPlayers.Remove(victim.Controller.SteamID))
+                        return;
+
+                    // Safety net: skip if player is no longer on a playing team (Spectator/Unassigned/None)
+                    // Catches: kicked to spec by admin, auto-balanced, or any edge case
+                    // where EventPlayerTeam fires after EventPlayerDeath
+                    if (!victim.Controller.IsValid || victim.Controller.Team <= CsTeam.Spectator)
                         return;
 
                     if (!_plugin._isGameEnd)

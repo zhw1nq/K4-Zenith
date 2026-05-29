@@ -31,6 +31,10 @@ public sealed partial class Plugin : BasePlugin
     {
         if (points == 0) return;
 
+        // Block all point changes when minimum player requirement is not met
+        int minPlayers = GetCachedConfigValue<int>("Settings", "MinPlayers");
+        if (_playerCache.Count < minPlayers) return;
+
         var svipFlags = GetCachedConfigValue<List<string>>("Settings", "SVIPFlags");
         var svipMultiplier = (decimal)GetCachedConfigValue<double>("Settings", "SvipMultiplier");
         var vipFlags = GetCachedConfigValue<List<string>>("Settings", "VIPFlags");
@@ -176,12 +180,19 @@ public sealed partial class Plugin : BasePlugin
         long attackerPoints = attacker.GetStorage<long>("Points", MODULE_ID);
         long victimPoints = victim.GetStorage<long>("Points", MODULE_ID);
 
-        if (attackerPoints <= 0 || victimPoints <= 0)
-            return basePoints;
-
         double minMultiplier = _configAccessor.GetValue<double>("Settings", "DynamicDeathPointsMinMultiplier");
         double maxMultiplier = _configAccessor.GetValue<double>("Settings", "DynamicDeathPointsMaxMultiplier");
 
+        // Attacker has negative/zero points, victim has positive points
+        // → Maximum penalty (shameful to be killed by a negative-points player)
+        if (attackerPoints <= 0 && victimPoints > 0)
+            return (int)Math.Round(maxMultiplier * basePoints);
+
+        // Victim has negative/zero points → base points only (already punished enough)
+        if (victimPoints <= 0)
+            return basePoints;
+
+        // Both positive → normal dynamic ratio
         double pointsRatio = Math.Clamp(victimPoints / (double)attackerPoints, minMultiplier, maxMultiplier);
         return (int)Math.Round(pointsRatio * basePoints);
     }
